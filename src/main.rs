@@ -1,7 +1,7 @@
-use clap::{Parser, ArgGroup};
+use clap::{ArgGroup, Parser};
+use curly::{run, Config};
 use env_logger;
-use log::{LevelFilter};
-use curly::{Config, run};
+use log::LevelFilter;
 
 /// A simple program to convert a code repository into an LLM prompt
 #[derive(Parser)]
@@ -44,9 +44,13 @@ fn main() {
     let cli = Cli::parse();
 
     if cli.verbose {
-        env_logger::builder().filter_level(LevelFilter::Debug).init();
+        env_logger::builder()
+            .filter_level(LevelFilter::Debug)
+            .init();
     } else if cli.quiet {
-        env_logger::builder().filter_level(LevelFilter::Error).init();
+        env_logger::builder()
+            .filter_level(LevelFilter::Error)
+            .init();
     } else {
         env_logger::builder().filter_level(LevelFilter::Warn).init();
     }

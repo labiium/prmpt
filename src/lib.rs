@@ -1,12 +1,12 @@
+use glob::Pattern;
+use log::{debug, error, warn};
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
-use glob::Pattern;
-use rayon::prelude::*;
-use walkdir::{DirEntry, WalkDir};
-use log::{debug, error, warn};
+use walkdir::WalkDir;
 
 pub struct Config {
     pub path: String,
@@ -19,16 +19,29 @@ pub struct Config {
 pub fn run(config: Config) {
     let repo_path = Path::new(&config.path);
     let current_dir_name = if config.path == "." {
-        std::env::current_dir().unwrap().file_name().unwrap().to_string_lossy().to_string()
+        std::env::current_dir()
+            .unwrap()
+            .file_name()
+            .unwrap()
+            .to_string_lossy()
+            .to_string()
     } else {
-        repo_path.file_name().unwrap_or_else(|| OsStr::new("")).to_string_lossy().to_string()
+        repo_path
+            .file_name()
+            .unwrap_or_else(|| OsStr::new(""))
+            .to_string_lossy()
+            .to_string()
     };
 
     if repo_path.is_dir() {
         let output = Arc::new(Mutex::new(String::new()));
         let error_count = Arc::new(Mutex::new(HashMap::new()));
 
-        let mut ignore_patterns: Vec<Pattern> = config.ignore.iter().map(|p| Pattern::new(p).unwrap()).collect();
+        let mut ignore_patterns: Vec<Pattern> = config
+            .ignore
+            .iter()
+            .map(|p| Pattern::new(p).unwrap())
+            .collect();
         ignore_patterns.push(Pattern::new(".git").unwrap());
 
         if let Some(language) = config.language.as_deref() {
@@ -46,7 +59,14 @@ pub fn run(config: Config) {
             output.push_str("\n");
         }
 
-        process_directory_files(repo_path, &output, repo_path, &ignore_patterns, &config.delimiter, &error_count);
+        process_directory_files(
+            repo_path,
+            &output,
+            repo_path,
+            &ignore_patterns,
+            &config.delimiter,
+            &error_count,
+        );
 
         let output = output.lock().unwrap();
         if let Some(output_file) = &config.output {
@@ -60,7 +80,10 @@ pub fn run(config: Config) {
         let error_count = error_count.lock().unwrap();
         if !error_count.is_empty() {
             for (dir, count) in error_count.iter() {
-                warn!("Directory '{}' had {} file(s) that could not be processed", dir, count);
+                warn!(
+                    "Directory '{}' had {} file(s) that could not be processed",
+                    dir, count
+                );
             }
         }
     } else {
@@ -112,7 +135,13 @@ fn get_default_ignore_patterns(language: &str) -> Vec<Pattern> {
     }
 }
 
-fn process_directory_structure(dir: &Path, output: &Arc<Mutex<String>>, depth: usize, ignore_patterns: &[Pattern], prefix: &str) {
+fn process_directory_structure(
+    dir: &Path,
+    output: &Arc<Mutex<String>>,
+    depth: usize,
+    ignore_patterns: &[Pattern],
+    prefix: &str,
+) {
     let entries: Vec<_> = WalkDir::new(dir)
         .min_depth(1)
         .max_depth(1)
@@ -129,25 +158,35 @@ fn process_directory_structure(dir: &Path, output: &Arc<Mutex<String>>, depth: u
             let dir_name = path.file_name().unwrap().to_string_lossy();
             {
                 let mut output = output.lock().unwrap();
-                output.push_str(&format!("{}{}── {}\n", prefix, if is_last { "└" } else { "├" }, dir_name));
+                output.push_str(&format!(
+                    "{}{}── {}\n",
+                    prefix,
+                    if is_last { "└" } else { "├" },
+                    dir_name
+                ));
             }
             let new_prefix = format!("{}{}   ", prefix, if is_last { " " } else { "│" });
             process_directory_structure(path, output, depth + 1, ignore_patterns, &new_prefix);
         } else if path.is_file() {
             let file_name = path.file_name().unwrap().to_string_lossy();
             let mut output = output.lock().unwrap();
-            output.push_str(&format!("{}{}── {}\n", prefix, if is_last { "└" } else { "├" }, file_name));
+            output.push_str(&format!(
+                "{}{}── {}\n",
+                prefix,
+                if is_last { "└" } else { "├" },
+                file_name
+            ));
         }
     }
 }
 
 fn process_directory_files(
-    dir: &Path, 
-    output: &Arc<Mutex<String>>, 
-    base_path: &Path, 
-    ignore_patterns: &[Pattern], 
+    dir: &Path,
+    output: &Arc<Mutex<String>>,
+    base_path: &Path,
+    ignore_patterns: &[Pattern],
     delimiter: &str,
-    error_count: &Arc<Mutex<HashMap<String, usize>>>
+    error_count: &Arc<Mutex<HashMap<String, usize>>>,
 ) {
     let files: Vec<_> = WalkDir::new(dir)
         .into_iter()
@@ -172,16 +211,25 @@ fn process_directory_files(
 }
 
 fn should_ignore(path: &Path, ignore_patterns: &[Pattern]) -> bool {
-    let path_str = path.to_string_lossy();
+    // let path_str = path.to_string_lossy();
     for pattern in ignore_patterns {
-        if pattern.matches_path(path) || path.components().any(|comp| pattern.matches(&comp.as_os_str().to_string_lossy())) {
+        if pattern.matches_path(path)
+            || path
+                .components()
+                .any(|comp| pattern.matches(&comp.as_os_str().to_string_lossy()))
+        {
             return true;
         }
     }
     false
 }
 
-fn process_file(file: &Path, output: &mut String, base_path: &Path, delimiter: &str) -> Result<(), std::io::Error> {
+fn process_file(
+    file: &Path,
+    output: &mut String,
+    base_path: &Path,
+    delimiter: &str,
+) -> Result<(), std::io::Error> {
     let relative_path = file.strip_prefix(base_path).unwrap().to_string_lossy();
 
     output.push_str(&format!("{}{}\n", delimiter, relative_path));
