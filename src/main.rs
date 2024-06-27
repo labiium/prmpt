@@ -11,8 +11,11 @@ use log::LevelFilter;
         .args(&["verbose", "quiet"])
 ))]
 struct Cli {
-    /// The path to the code repository
-    #[arg(short, long)]
+    /// The path to the code repository give default value as current directory
+    // #[arg(short, long)]
+    // path: String,
+
+    #[arg(short, long, default_value = ".")]
     path: String,
 
     /// Patterns to ignore
