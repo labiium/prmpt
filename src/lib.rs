@@ -267,9 +267,9 @@ pub fn inject(input: &str, path: &str) -> Result<(), io::Error> {
         if !in_code_block && (
             line.trim_start().starts_with("### `") && line.trim_end().ends_with("`") ||
             line.trim_start().starts_with("**`") && line.trim_end().ends_with("`**") ||
-            line.trim_start().starts_with("```") && line.trim_end().ends_with("```")){
+            line.trim_start().starts_with("`") && line.trim_end().ends_with("`") && line.len() > 3){
             // let relative_path = &line[5..line.len()-1];
-            let relateive_path = format!("{}/{}", path, &line[5..line.len()-1]);
+            let relateive_path = format!("{}/{}", path, extract_path(line));
             let relative_path = &relateive_path;
             if !relative_path.trim().is_empty() {
                 file_path = Some(PathBuf::from(relative_path.trim()));
@@ -324,4 +324,15 @@ pub fn inject(input: &str, path: &str) -> Result<(), io::Error> {
 
     info!("Finished processing the input file.");
     Ok(())
+}
+
+
+fn extract_path(input: &str) -> &str {
+    if input.starts_with("### `") && input.ends_with("`") {
+        &input[5..input.len()-1]
+    } else if input.starts_with("**`") && input.ends_with("`**") {
+        &input[3..input.len()-3]
+    } else {
+        &input[1..input.len()-1]
+    }
 }

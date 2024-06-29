@@ -1,134 +1,206 @@
-Sure, I'll provide a comprehensive multi-agent LLM library in Python, complete with logging, debugging tools, and prompt optimization tools. Below are the files and their contents.
+Certainly! Here's the improved version with proper file pathing:
 
-### `src/agent.py`
-```python
-import logging
-
-class Agent:
-    def __init__(self, name, model):
-        self.name = name
-        self.model = model
-        self.logger = logging.getLogger(f'Agent-{self.name}')
-        self.logger.setLevel(logging.DEBUG)
-
-    def send_message(self, message):
-        self.logger.debug(f'Sending message: {message}')
-        response = self.model.generate_response(message)
-        self.logger.debug(f'Received response: {response}')
-        return response
-
-    def optimize_prompt(self, dataset):
-        self.logger.debug(f'Optimizing prompt with dataset of size: {len(dataset)}')
-        # Implement prompt optimization logic here
-        pass
+**`asham_derive/.gitignore`**
+```
+/target
 ```
 
-### `src/model.py`
-```python
-import openai
-import logging
+**`asham_derive/Cargo.toml`**
+```toml
+[package]
+name = "asham_derive"
+version = "0.1.0"
+edition = "2021"
 
-class LLMModel:
-    def __init__(self, api_key, model_name="gpt-3.5-turbo"):
-        openai.api_key = api_key
-        self.model_name = model_name
-        self.logger = logging.getLogger('LLMModel')
-        self.logger.setLevel(logging.DEBUG)
+[dependencies]
+proc-macro2 = "1.0.86"
+quote = "1.0.36"
+syn = { version = "2.0.67", features = ["full","extra-traits"] }
 
-    def generate_response(self, prompt):
-        self.logger.debug(f'Generating response for prompt: {prompt}')
-        try:
-            response = openai.ChatCompletion.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}]
-            )
-            message = response['choices'][0]['message']['content']
-            self.logger.debug(f'Generated response: {message}')
-            return message
-        except Exception as e:
-            self.logger.error(f'Error generating response: {e}')
-            return None
+[lib]
+proc-macro = true
 ```
 
-### `src/prompt_optimizer.py`
-```python
-import logging
+**`asham_derive/examples/simple.rs`**
+```rust
+use serde::Serialize;
+use asham::Task;
 
-class PromptOptimizer:
-    def __init__(self):
-        self.logger = logging.getLogger('PromptOptimizer')
-        self.logger.setLevel(logging.DEBUG)
+#[derive(Debug, Serialize, Task)]
+#[task(description = "The text to translate.", output = "TranslationOutput")]
+pub struct TranslationTask {
+    #[task(description = "The text to translate.")]
+    pub text: String,
 
-    def calibrate(self, dataset, model):
-        self.logger.debug(f'Starting calibration with dataset of size: {len(dataset)}')
-        optimized_prompts = []
-        for data in dataset:
-            prompt = data['prompt']
-            expected_response = data['response']
-            self.logger.debug(f'Calibrating prompt: {prompt}')
-            optimized_prompt = self._optimize_single_prompt(prompt, expected_response, model)
-            optimized_prompts.append(optimized_prompt)
-        self.logger.debug('Calibration complete')
-        return optimized_prompts
+    #[task(description = "The source language code.")]
+    pub source_language: String,
 
-    def _optimize_single_prompt(self, prompt, expected_response, model):
-        # Implement single prompt optimization logic here
-        # Placeholder logic for demonstration purposes
-        return prompt
+    #[task(description = "The target language code.")]
+    pub target_language: String,
+}
+
+fn main() {
+    println!("Hello, world!");
+}
 ```
 
-### `src/logging_setup.py`
-```python
-import logging
+**`asham_derive/src/lib.rs`**
+```rust
+extern crate proc_macro;
 
-def setup_logging():
-    logging.basicConfig(level=logging.DEBUG,
-                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        handlers=[
-                            logging.FileHandler('multi_agent_llm.log'),
-                            logging.StreamHandler()
-                        ])
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, DeriveInput, Lit, Attribute, Data, Fields, Meta, MetaNameValue, NestedMeta};
+
+#[proc_macro_derive(Task, attributes(task))]
+pub fn task_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = input.ident;
+
+    let mut description = "Default description".to_string();
+    let mut output = "Default output".to_string();
+
+    // Function to process the attributes
+    fn process_task_attribute(attr: &Attribute) -> Option<(String, String)> {
+        if attr.path().is_ident("task") {
+            if let Ok(Meta::List(meta_list)) = attr.parse_meta() {
+                let mut desc = None;
+                let mut out = None;
+                for nested_meta in meta_list.nested {
+                    if let NestedMeta::Meta(Meta::NameValue(MetaNameValue { path, lit })) = nested_meta {
+                        if path.is_ident("description") {
+                            if let Lit::Str(s) = lit {
+                                desc = Some(s.value());
+                            }
+                        } else if path.is_ident("output") {
+                            if let Lit::Str(s) = lit {
+                                out = Some(s.value());
+                            }
+                        }
+                    }
+                }
+                return desc.zip(out);
+            }
+        }
+        None
+    }
+
+    for attr in &input.attrs {
+        if let Some((desc, out)) = process_task_attribute(attr) {
+            description = desc;
+            output = out;
+        }
+    }
+
+    // Handle field types
+    let field_types = match &input.data {
+        Data::Struct(data) => {
+            let fields = match &data.fields {
+                Fields::Named(fields_named) => &fields_named.named,
+                Fields::Unnamed(fields_unnamed) => &fields_unnamed.unnamed,
+                Fields::Unit => panic!("Unit structs are not supported"),
+            };
+
+            fields.iter().map(|field| {
+                let field_name = field.ident.as_ref().map_or_else(|| quote! { _ }, |ident| quote! { #ident });
+                let field_type = &field.ty;
+                quote! {
+                    println!("Field: {}, Type: {}", stringify!(#field_name), stringify!(#field_type));
+                }
+            }).collect::<Vec<_>>()
+        },
+        _ => panic!("Task can only be used with structs"),
+    };
+
+    // Generate the final expanded code including the field types printer method
+    let expanded = quote! {
+        impl Task for #name {
+            fn description(&self) -> &'static str {
+                #description
+            }
+
+            fn output(&self) -> &'static str {
+                #output
+            }
+
+            fn print_field_types(&self) {
+                #( #field_types )*
+            }
+
+            fn execute(&self) -> String {
+                // Placeholder for executing the task logic
+                format!("Executing task: {}", #description)
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
 ```
 
-### `examples/example_usage.py`
-```python
-import sys
-sys.path.append('..')
-from src.agent import Agent
-from src.model import LLMModel
-from src.prompt_optimizer import PromptOptimizer
-from src.logging_setup import setup_logging
-
-def main():
-    setup_logging()
-    
-    # Initialize model
-    api_key = "your_openai_api_key_here"
-    model = LLMModel(api_key)
-    
-    # Initialize agents
-    agent1 = Agent("Agent1", model)
-    agent2 = Agent("Agent2", model)
-    
-    # Example conversation
-    message = "Hello, how are you?"
-    response1 = agent1.send_message(message)
-    print(f"Agent1: {response1}")
-    
-    response2 = agent2.send_message(message)
-    print(f"Agent2: {response2}")
-    
-    # Prompt optimization example
-    dataset = [
-        {"prompt": "Hello, how are you?", "response": "I'm good, thank you!"},
-        {"prompt": "What is the weather like today?", "response": "It's sunny and warm."}
-    ]
-    optimizer = PromptOptimizer()
-    optimized_prompts = optimizer.calibrate(dataset, model)
-    print(f"Optimized Prompts: {optimized_prompts}")
-
-if __name__ == "__main__":
-    main()
+**`asham/.gitignore`**
+```
+/target
 ```
 
-This structure provides a comprehensive multi-agent LLM library in Python with detailed logging, debugging tools, and prompt optimization capabilities. You can run the example usage script to test and evaluate the library. Adjust the `api_key` with your actual OpenAI API key before running the script.
+**`asham/Cargo.toml`**
+```toml
+[package]
+name = "asham"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+serde = { version = "1.0.203", features = ["derive"] }
+serde_json = "1.0.117"
+asham_derive = { path = "../asham_derive" }
+```
+
+**`asham/src/main.rs`**
+```rust
+use serde::Serialize;
+use asham::Task;
+use asham_derive::Task;
+
+#[derive(Debug, Serialize, Task)]
+#[task(description = "Translate text from one language to another.", output = "TranslationOutput")]
+pub struct TranslationTask {
+    #[task(description = "The text to translate.")]
+    pub text: String,
+
+    #[task(description = "The source language code.")]
+    pub source_language: String,
+
+    #[task(description = "The target language code.")]
+    pub target_language: String,
+}
+
+fn main() {
+    let task = TranslationTask {
+        text: "Hello, world!".to_string(),
+        source_language: "en".to_string(),
+        target_language: "es".to_string(),
+    };
+
+    println!("Task description: {}", task.description());
+    println!("Task output: {}", task.output());
+    println!("Field types:");
+    task.print_field_types();
+
+    println!("{}", task.execute());
+}
+```
+
+**`asham/src/lib.rs`**
+```rust
+pub trait Task {
+    fn description(&self) -> &'static str;
+    fn output(&self) -> &'static str;
+    fn print_field_types(&self);
+    fn execute(&self) -> String;
+}
+
+use asham_derive::Task;
+```
+
+The library structure now reflects the file paths clearly, making it easier to understand where each file belongs in the project hierarchy.
