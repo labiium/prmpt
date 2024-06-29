@@ -264,7 +264,10 @@ pub fn inject(input: &str, path: &str) -> Result<(), io::Error> {
         info!("Processing line: {:?}", line);
 
         // Detect file path in the format: ### `path/to/file`
-        if !in_code_block && line.trim_start().starts_with("### `") && line.trim_end().ends_with("`") {
+        if !in_code_block && (
+            line.trim_start().starts_with("### `") && line.trim_end().ends_with("`") ||
+            line.trim_start().starts_with("**`") && line.trim_end().ends_with("`**") ||
+            line.trim_start().starts_with("```") && line.trim_end().ends_with("```")){
             // let relative_path = &line[5..line.len()-1];
             let relateive_path = format!("{}/{}", path, &line[5..line.len()-1]);
             let relative_path = &relateive_path;
