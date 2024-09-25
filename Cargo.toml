@@ -4,9 +4,17 @@ version = "0.2.0"
 edition = "2021"
 
 [dependencies]
+# Existing dependencies
 clap = { version = "4.5.7", features = ["derive"] }
 env_logger = "0.11.3"
 glob = "0.3.1"
 log = "0.4.21"
 rayon = "1.10.0"
 walkdir = "2.5.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+regex = "1.7.1"
+
+# Add tree-sitter dependencies
+tree-sitter = "0.20.7"
+tree-sitter-python = { version = "0.20.0" }

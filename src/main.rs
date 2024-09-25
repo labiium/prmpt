@@ -1,5 +1,5 @@
 use clap::{ArgGroup, Parser, Subcommand};
-use curly::{run, inject, Config};
+use curly::{inject, load_config, run, Config};
 use env_logger;
 use log::LevelFilter;
 
@@ -12,7 +12,7 @@ use log::LevelFilter;
 ))]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Commands>,  // Make command optional
+    command: Option<Commands>,
 
     /// Verbose mode
     #[arg(long)]
@@ -25,6 +25,30 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Run curly using a configuration from curly.config
+    Run {
+        /// Name of the configuration to run (defaults to 'base')
+        name: Option<String>,
+    },
+    /// Inject code into the repository from the output file
+    Inject {
+        /// Path to the output file containing code to inject
+        #[arg(
+            short,
+            long,
+            default_value = "output.txt",
+            help = "Specify the output file containing the code to inject."
+        )]
+        input: String,
+
+        #[arg(
+            short,
+            long,
+            default_value = ".",
+            help = "Specify the path to the repository to inject the code into."
+        )]
+        path: String,
+    },
     /// Generate the output from a repository
     Generate {
         /// The path to the code repository, default value is current directory
@@ -47,15 +71,6 @@ enum Commands {
         #[arg(long)]
         language: Option<String>,
     },
-    /// Inject code into the repository from the output file
-    Inject {
-        /// Path to the output file containing code to inject
-        #[arg(short, long, default_value = "output.txt", help = "Specify the output file containing the code to inject.\n\nProvide the relative file path at the top of the block.\nFollow the relative file path with the code, ensuring there is no additional text in between.\nThink logically, breaking down the problem step by step within the comments of the code.\n\n### Example:\n\n`src/lib.rs`\n```rust\nfn main() {\n    println!(\"Hello, world!\");\n}\n```\n\n`src/main.py`\n```python\nprint(\"hello\")\n```\n\nAdd this to your code prompt to be able to use curly to deserialize it.")]
-        input: String,
-
-        #[arg(short, long, default_value = ".", help = "Specify the path to the repository to inject the code into.")]
-        path: String,
-    },
 }
 
 fn main() {
@@ -73,33 +88,62 @@ fn main() {
         env_logger::builder().filter_level(LevelFilter::Warn).init();
     }
 
-    match cli.command.unwrap_or(Commands::Generate {
-        path: ".".into(),
-        ignore: Vec::new(),
-        output: None,
-        delimiter: "```".into(),
-        language: None,
-    }) {
-        Commands::Generate {
+    match cli.command {
+        Some(Commands::Run { name }) => {
+            // Load the configuration file
+            match load_config() {
+                Ok(configs) => {
+                    let config_name = name.unwrap_or_else(|| "base".to_string());
+                    if let Some(config) = configs.get(&config_name) {
+                        // Call run() with the configuration
+                        run(config.clone());
+                    } else {
+                        eprintln!("Configuration '{}' not found in curly.yaml", config_name);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to load curly.yaml: {}", e);
+                }
+            }
+        }
+        Some(Commands::Inject { input, path }) => {
+            if let Err(e) = inject(&input, &path) {
+                eprintln!("Error injecting code: {}", e);
+            }
+        }
+        Some(Commands::Generate {
             path,
             ignore,
             output,
             delimiter,
             language,
-        } => {
+        }) => {
             let config = Config {
-                path,
-                ignore,
+                path: Some(path),
+                ignore: Some(ignore),
                 output,
-                delimiter,
+                delimiter: Some(delimiter),
                 language,
+                docs_comments_only: Some(false),
+                prompts: None,
+                use_gitignore: Some(false),
             };
 
             run(config);
         }
-        Commands::Inject { input, path } => {
-            if let Err(e) = inject(&input, &path) {
-                eprintln!("Error injecting code: {}", e);
+        None => {
+            // Default to 'Run' command with 'base' configuration
+            match load_config() {
+                Ok(configs) => {
+                    if let Some(config) = configs.get("base") {
+                        run(config.clone());
+                    } else {
+                        eprintln!("Configuration 'base' not found in curly.yaml");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to load curly.yaml: {}", e);
+                }
             }
         }
     }

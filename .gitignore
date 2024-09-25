@@ -1,2 +1,4 @@
-/target
-test/output.txt
+target
+test
+test_dir
+curly.out
