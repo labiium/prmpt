@@ -298,7 +298,8 @@ fn process_file(
     file: &Path,
     output: &mut String,
     base_path: &Path,
-    delimiter: &str,
+    // unused
+    _delimiter: &str,
     config: &Config, // Receive the config
 ) -> Result<(), std::io::Error> {
     let relative_path = file.strip_prefix(base_path).unwrap().to_string_lossy();
