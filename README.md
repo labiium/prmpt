@@ -207,7 +207,3 @@ For major changes, please open an issue first to discuss what you would like to 
 ## License
 
 Curly is licensed under the [MIT License](LICENSE).
-
-## Contact
-
-For questions or support, please open an issue on the [GitHub repository](https://github.com/yourusername/curly) or contact [your.email@example.com](mailto:your.email@example.com).
