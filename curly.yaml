@@ -3,10 +3,10 @@ base:
   ignore:
     - '*.tmp'
     - 'temp'
-    # - 'test_dir'
+    - test_dir
   # output: 'curly.out'
   delimiter: '```'
-  language: 'rust'
+  language: rust
   use_gitignore: true
   prompts:
     - 'Provide the relative file path at the top of the block.'

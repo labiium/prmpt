@@ -104,7 +104,8 @@ pub fn run(config: Config) {
         let mut output = output.lock().unwrap();
         output.push_str(&format!("{}\n", current_dir_name));
     }
-    process_directory_structure(repo_path, &output, 0, &ignore_patterns, "");
+    // Pass base_path to the directory structure processor
+    process_directory_structure(repo_path, &output, 0, &ignore_patterns, "", repo_path);
     {
         let mut output = output.lock().unwrap();
         output.push_str("\n");
@@ -199,19 +200,42 @@ fn get_default_ignore_patterns(language: &str) -> Vec<Pattern> {
     }
 }
 
+/// Modify the function to accept `base_path` and match patterns against relative paths
+fn should_ignore(path: &Path, base_path: &Path, ignore_patterns: &[Pattern]) -> bool {
+    // Get the path relative to `base_path`
+    let relative_path = match path.strip_prefix(base_path) {
+        Ok(rel_path) => rel_path,
+        Err(_) => path,
+    };
+
+    // Check if any pattern matches the relative path
+    for pattern in ignore_patterns {
+        if pattern.matches_path(relative_path)
+            || relative_path
+                .components()
+                .any(|comp| pattern.matches(&comp.as_os_str().to_string_lossy()))
+        {
+            return true;
+        }
+    }
+    false
+}
+
 fn process_directory_structure(
     dir: &Path,
     output: &Arc<Mutex<String>>,
     depth: usize,
     ignore_patterns: &[Pattern],
     prefix: &str,
+    base_path: &Path, // Added `base_path` argument
 ) {
     let entries: Vec<_> = WalkDir::new(dir)
         .min_depth(1)
         .max_depth(1)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| !should_ignore(e.path(), ignore_patterns))
+        // Pass `base_path` to `should_ignore`
+        .filter(|e| !should_ignore(e.path(), base_path, ignore_patterns))
         .collect();
 
     for (i, entry) in entries.iter().enumerate() {
@@ -230,7 +254,15 @@ fn process_directory_structure(
                 ));
             }
             let new_prefix = format!("{}{}   ", prefix, if is_last { " " } else { "│" });
-            process_directory_structure(path, output, depth + 1, ignore_patterns, &new_prefix);
+            // Pass `base_path` to recursive call
+            process_directory_structure(
+                path,
+                output,
+                depth + 1,
+                ignore_patterns,
+                &new_prefix,
+                base_path,
+            );
         } else if path.is_file() {
             let file_name = path.file_name().unwrap().to_string_lossy();
             let mut output = output.lock().unwrap();
@@ -251,11 +283,12 @@ fn process_directory_files(
     ignore_patterns: &[Pattern],
     delimiter: &str,
     error_count: &Arc<Mutex<HashMap<String, usize>>>,
-    config: &Config, // Receive the entire config
+    config: &Config, // Pass the entire config
 ) {
     let files: Vec<_> = WalkDir::new(dir)
         .into_iter()
-        .filter_entry(|e| !should_ignore(e.path(), ignore_patterns))
+        // Pass `base_path` to `should_ignore`
+        .filter_entry(|e| !should_ignore(e.path(), base_path, ignore_patterns))
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_file())
         .collect();
@@ -268,7 +301,7 @@ fn process_directory_files(
             &mut local_output,
             base_path,
             delimiter,
-            config, // Pass the config to process_file
+            config, // Pass the config to `process_file`
         ) {
             let dir = path.parent().unwrap().to_string_lossy().to_string();
             let mut error_count = error_count.lock().unwrap();
@@ -281,24 +314,10 @@ fn process_directory_files(
     });
 }
 
-fn should_ignore(path: &Path, ignore_patterns: &[Pattern]) -> bool {
-    for pattern in ignore_patterns {
-        if pattern.matches_path(path)
-            || path
-                .components()
-                .any(|comp| pattern.matches(&comp.as_os_str().to_string_lossy()))
-        {
-            return true;
-        }
-    }
-    false
-}
-
 fn process_file(
     file: &Path,
     output: &mut String,
     base_path: &Path,
-    // unused
     _delimiter: &str,
     config: &Config, // Receive the config
 ) -> Result<(), std::io::Error> {
