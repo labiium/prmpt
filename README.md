@@ -163,7 +163,6 @@ To ensure that the LLM outputs code in a format compatible with Curly's `inject`
 
 **Example Prompt:**
 
-```markdown
 `src/main.rs`
 
 ```rust
@@ -179,7 +178,6 @@ def helper_function():
     """This function helps with X."""
     pass
 ```
-```
 
 ## Configuration Options
 
@@ -191,18 +189,6 @@ def helper_function():
 - `prompts` *(mapping)*: Custom prompts for specific files.
 - `docs_comments_only` *(bool)*: If `true`, only extracts documentation and comments.
 - `use_gitignore` *(bool)*: If `true`, respects patterns in `.gitignore`.
-
-## Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. **Fork the Repository:** Click the "Fork" button on GitHub.
-2. **Create a Branch:** Use `git checkout -b feature-name`.
-3. **Commit Your Changes:** Make sure to write clear commit messages.
-4. **Push to Your Fork:** Use `git push origin feature-name`.
-5. **Submit a Pull Request:** Describe your changes in detail.
-
-For major changes, please open an issue first to discuss what you would like to change.
 
 ## License
 
