@@ -1,4 +1,4 @@
-use clap::{Parser};
+use clap::Parser;
 use curly::{inject, load_config, run, Config};
 use env_logger;
 use log::LevelFilter;
@@ -78,6 +78,7 @@ fn main() {
                 delimiter: Some(generate_cli.delimiter),
                 language: generate_cli.language,
                 docs_comments_only: Some(false),
+                docs_ignore: Some(generate_cli.docs_ignore),
                 prompts: None,
                 use_gitignore: Some(false),
             };
@@ -144,6 +145,10 @@ struct GenerateCli {
     /// Patterns to ignore
     #[arg(short, long)]
     ignore: Vec<String>,
+
+    /// Patterns to ignore in documentation comments
+    #[arg(long)]
+    docs_ignore: Vec<String>,
 
     /// Output file
     #[arg(short, long)]

@@ -24,8 +24,9 @@ pub struct Config {
     pub language: Option<String>,
     pub prompts: Option<Vec<String>>,
     pub docs_comments_only: Option<bool>,
+    pub docs_ignore: Option<Vec<String>>,
     pub use_gitignore: Option<bool>, // Added field to control use of .gitignore
-    // Additional fields can be added here
+                                     // Additional fields can be added here
 }
 
 /// Load configurations from 'curly.yaml'
@@ -323,14 +324,41 @@ fn process_file(
 ) -> Result<(), std::io::Error> {
     let relative_path = file.strip_prefix(base_path).unwrap().to_string_lossy();
 
-    // Only process files with .py extension if language is Python and 'docs_comments_only' is true
-    let extension = file.extension().and_then(OsStr::to_str).unwrap_or("");
+    // Get docs_ignore patterns from config
+    let docs_ignore_patterns = if let Some(docs_ignore_list) = &config.docs_ignore {
+        docs_ignore_list
+            .iter()
+            .filter_map(|p| Pattern::new(p).ok())
+            .collect::<Vec<Pattern>>()
+    } else {
+        Vec::new()
+    };
 
+    // Check if file matches docs_ignore patterns
+    let should_ignore_docs_only = docs_ignore_patterns
+        .iter()
+        .any(|pattern| pattern.matches(&relative_path) || pattern.matches_path(file));
+
+    // If docs_comments_only is true and file doesn't match docs_ignore patterns
     if let Some(true) = config.docs_comments_only {
-        if config.language.as_deref().unwrap_or("").to_lowercase() == "python" {
+        if !should_ignore_docs_only
+            && config.language.as_deref().unwrap_or("").to_lowercase() == "python"
+        {
+            let extension = file.extension().and_then(OsStr::to_str).unwrap_or("");
             if extension != "py" {
                 return Ok(()); // Skip non-Python files
             }
+
+            // Check if file path matches any docs_ignore patterns
+            let should_ignore_docs_only = docs_ignore_patterns
+                .iter()
+                .any(|pattern| pattern.matches(&relative_path));
+
+            if should_ignore_docs_only {
+                // Skip this file
+                return Ok(());
+            }
+
             // Process Python file to extract signatures and docstrings
             let contents = fs::read_to_string(file)?;
             let signatures = extract_python_signatures(&contents);
@@ -511,7 +539,8 @@ fn extract_docstring(block_node: Node, source_code: &str, indent_level: usize) -
                     // Strip the quotes and get the quote type
                     let (stripped_docstring, quote_type) = strip_quotes(docstring_text);
                     // Indent the docstring with the correct indentation and re-add quotes
-                    let indented_docstring = indent_docstring(stripped_docstring, &indent, quote_type);
+                    let indented_docstring =
+                        indent_docstring(stripped_docstring, &indent, quote_type);
                     return indented_docstring;
                 }
             }
@@ -523,9 +552,12 @@ fn extract_docstring(block_node: Node, source_code: &str, indent_level: usize) -
 // Add 'strip_quotes' function to remove quotes and get the quote type
 fn strip_quotes(s: &str) -> (&str, &str) {
     let s = s.trim();
-    if (s.starts_with("\"\"\"") && s.ends_with("\"\"\"")) || (s.starts_with("'''") && s.ends_with("'''")) {
+    if (s.starts_with("\"\"\"") && s.ends_with("\"\"\""))
+        || (s.starts_with("'''") && s.ends_with("'''"))
+    {
         (&s[3..s.len() - 3], &s[..3]) // Return the inner content and the quote type
-    } else if (s.starts_with("\"") && s.ends_with("\"")) || (s.starts_with("'") && s.ends_with("'")) {
+    } else if (s.starts_with("\"") && s.ends_with("\"")) || (s.starts_with("'") && s.ends_with("'"))
+    {
         (&s[1..s.len() - 1], &s[..1])
     } else {
         (s, "")
@@ -550,16 +582,18 @@ fn indent_docstring(docstring: &str, indent: &str, quote_type: &str) -> String {
     } else {
         // For single-line docstrings, keep it in one line
         if !dedented_docstring.contains('\n') {
-            format!("{}{}{}{}", indent, quote_type, dedented_docstring.trim(), quote_type)
+            format!(
+                "{}{}{}{}",
+                indent,
+                quote_type,
+                dedented_docstring.trim(),
+                quote_type
+            )
         } else {
             // For multi-line docstrings, place quotes on separate lines
             format!(
                 "{}{}\n{}\n{}{}",
-                indent,
-                quote_type,
-                indented_docstring,
-                indent,
-                quote_type
+                indent, quote_type, indented_docstring, indent, quote_type
             )
         }
     }
@@ -582,7 +616,7 @@ fn dedent(s: &str) -> String {
         .collect::<Vec<&str>>()
         .join("\n");
 
-    string   
+    string
 }
 
 pub fn inject(input: &str, path: &str) -> Result<(), io::Error> {
