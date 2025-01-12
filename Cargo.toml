@@ -18,3 +18,4 @@ regex = "1.7.1"
 # Add tree-sitter dependencies
 tree-sitter = "0.20.7"
 tree-sitter-python = { version = "0.20.0" }
+serde_json = "1.0.135"

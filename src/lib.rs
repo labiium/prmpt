@@ -2,6 +2,7 @@ use glob::Pattern;
 use log::{debug, error, info, warn};
 use rayon::prelude::*;
 use serde::Deserialize;
+use serde_json::Value as JsonValue;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs;
@@ -25,8 +26,9 @@ pub struct Config {
     pub prompts: Option<Vec<String>>,
     pub docs_comments_only: Option<bool>,
     pub docs_ignore: Option<Vec<String>>,
-    pub use_gitignore: Option<bool>, // Added field to control use of .gitignore
-                                     // Additional fields can be added here
+    pub use_gitignore: Option<bool>,
+    /// If true, any outputs from Jupyter Notebook cells will be included in the generated prompt.
+    pub display_outputs: Option<bool>,
 }
 
 /// Load configurations from 'curly.yaml'
@@ -373,9 +375,111 @@ fn process_file(
         }
     }
 
-    // Default processing
-    output.push_str(&format!("```{}\n", relative_path));
+    // -------------------------
+    // Handling .ipynb notebooks
+    // -------------------------
+    if let Some(ext) = file.extension().and_then(OsStr::to_str) {
+        if ext == "ipynb" {
+            // Read and parse the notebook as JSON
+            if let Ok(notebook_contents) = fs::read_to_string(file) {
+                if let Ok(notebook_json) = serde_json::from_str::<JsonValue>(&notebook_contents)
+                {
+                    // Start the code block with the relative file path as the header
+                    output.push_str(&format!("```{}\n", relative_path));
 
+                    if let Some(cells) =
+                        notebook_json.get("cells").and_then(|c| c.as_array())
+                    {
+                        for (i, cell) in cells.iter().enumerate() {
+                            let cell_type = cell.get("cell_type").and_then(|ct| ct.as_str());
+                            if let Some(cell_type) = cell_type {
+                                match cell_type {
+                                    "code" => {
+                                        if let Some(src) =
+                                            cell.get("source").and_then(|s| s.as_array())
+                                        {
+                                            output.push_str(&format!("// Cell #{} (code)\n", i));
+                                            for line_val in src {
+                                                if let Some(line_str) = line_val.as_str() {
+                                                    output.push_str(line_str);
+                                                }
+                                            }
+                                            output.push_str("\n");
+                                        }
+                                        // If display_outputs is enabled and outputs exist, print them
+                                        if config.display_outputs.unwrap_or(false) {
+                                            if let Some(outputs) =
+                                                cell.get("outputs").and_then(|o| o.as_array())
+                                            {
+                                                output.push_str(&format!("// Cell #{} (outputs)\n", i));
+                                                for output_obj in outputs {
+                                                    // Attempt to extract common output types
+                                                    if let Some(text) =
+                                                        output_obj.get("text").and_then(|t| t.as_array())
+                                                    {
+                                                        for text_line in text {
+                                                            if let Some(line_str) = text_line.as_str() {
+                                                                output.push_str(line_str);
+                                                            }
+                                                        }
+                                                        output.push_str("\n");
+                                                    } else if let Some(data) =
+                                                        output_obj.get("data").and_then(|d| d.as_object())
+                                                    {
+                                                        // For example: text/plain outputs
+                                                        if let Some(text_plain) = data.get("text/plain") {
+                                                            if let Some(text) = text_plain.as_array() {
+                                                                for text_line in text {
+                                                                    if let Some(line_str) =
+                                                                        text_line.as_str()
+                                                                    {
+                                                                        output.push_str(line_str);
+                                                                    }
+                                                                }
+                                                                output.push_str("\n");
+                                                            } else if let Some(text_str) =
+                                                                text_plain.as_str()
+                                                            {
+                                                                output.push_str(text_str);
+                                                                output.push_str("\n");
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    "markdown" => {
+                                        if let Some(src) =
+                                            cell.get("source").and_then(|s| s.as_array())
+                                        {
+                                            output.push_str(&format!("// Cell #{} (markdown)\n", i));
+                                            for line_val in src {
+                                                if let Some(line_str) = line_val.as_str() {
+                                                    output.push_str(line_str);
+                                                }
+                                            }
+                                            output.push_str("\n");
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
+                    // End the code block for the notebook
+                    output.push_str(&format!("\n```\n\n"));
+                }
+            }
+            return Ok(());
+        }
+    }
+    // -------------------------
+    // End of .ipynb handling
+    // -------------------------
+
+    // Default processing for all other files
+    output.push_str(&format!("```{}\n", relative_path));
     match fs::read_to_string(file) {
         Ok(contents) => output.push_str(&contents),
         Err(e) => {
@@ -383,7 +487,6 @@ fn process_file(
             return Err(e);
         }
     }
-
     output.push_str(&format!("\n```\n\n"));
     Ok(())
 }

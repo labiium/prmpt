@@ -81,6 +81,7 @@ fn main() {
                 docs_ignore: Some(generate_cli.docs_ignore),
                 prompts: None,
                 use_gitignore: Some(false),
+                display_outputs: Some(false),
             };
             run(config);
         }
