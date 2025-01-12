@@ -1,7 +1,14 @@
 use clap::Parser;
-use curly::{inject, load_config, run, Config};
 use env_logger;
 use log::LevelFilter;
+
+// Import all necessary functions/types from our library
+use curly::{
+    inject,      // The inject function
+    load_config, // The load_config function
+    run,         // The run function
+    Config,
+};
 
 /// A simple program to convert a code repository into an LLM prompt and inject code into a repository
 #[derive(Parser)]
@@ -71,6 +78,8 @@ fn main() {
                     std::process::exit(1);
                 }
             };
+
+            // Build a Config object from the parsed CLI arguments
             let config = Config {
                 path: Some(generate_cli.path),
                 ignore: Some(generate_cli.ignore),
@@ -79,10 +88,11 @@ fn main() {
                 language: generate_cli.language,
                 docs_comments_only: Some(false),
                 docs_ignore: Some(generate_cli.docs_ignore),
-                prompts: None,
                 use_gitignore: Some(false),
                 display_outputs: Some(false),
+                prompts: None,
             };
+
             run(config);
         }
         Some(reserved) if RESERVED_KEYWORDS.contains(&reserved) => {
@@ -126,6 +136,7 @@ fn main() {
     }
 }
 
+/// CLI parser for the `inject` command
 #[derive(Parser)]
 struct InjectCli {
     /// Path to the output file containing code to inject
@@ -137,6 +148,7 @@ struct InjectCli {
     path: String,
 }
 
+/// CLI parser for the `generate` command
 #[derive(Parser)]
 struct GenerateCli {
     /// The path to the code repository, default value is current directory
