@@ -140,7 +140,7 @@ fn main() {
 #[derive(Parser)]
 struct InjectCli {
     /// Path to the output file containing code to inject
-    #[arg(short, long, default_value = "curly,in")]
+    #[arg(short, long, default_value = "curly.in")]
     input: String,
 
     /// Path to the repository to inject the code into
