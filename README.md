@@ -125,7 +125,7 @@ Curly provides a command-line interface that can either invoke built-in commands
   ```
 
 - **Key Flags**:
-  - `--input`: File containing the new or modified code blocks to insert (default: `curly,in`).
+  - `--input`: File containing the new or modified code blocks to insert (default: `curly.in`).
   - `--path`: Destination repository path (default: current directory).
 
 ### Custom Configurations
