@@ -4,10 +4,10 @@ use log::LevelFilter;
 
 // Import all necessary functions/types from our library
 use curly::{
+    Config,
     inject,      // The inject function
     load_config, // The load_config function
     run,         // The run function
-    Config,
 };
 
 /// A simple program to convert a code repository into an LLM prompt and inject code into a repository

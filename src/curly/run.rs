@@ -27,7 +27,9 @@ use glob::Pattern;
 /// 3. Output a visual directory structure.
 /// 4. Traverse all files and collect code into the prompt.
 /// 5. Write the final result to `config.output` (defaults to "curly.out").
-pub fn run(config: Config) {
+/// 
+/// Returns a tuple of the final output and any errors encountered during processing.
+pub fn run(config: Config) -> (String, String) {
     let path = config.path.as_deref().unwrap_or(".").to_string();
     let repo_path = Path::new(&path);
 
@@ -110,22 +112,30 @@ pub fn run(config: Config) {
         &config,
     );
 
+    // Report any errors encountered during processing
+    let mut errors = String::new();
+    let error_count_guard = error_count.lock().unwrap();
+    if !error_count_guard.is_empty() {
+        for (dir, count) in error_count_guard.iter() {
+            errors.push_str(&format!(
+                "Directory '{}' had {} file(s) that could not be processed\n",
+                dir, count
+            ));
+        }
+    }
+    (output.lock().unwrap().clone(), errors)
+}
+
+pub fn run_and_write(config: Config) {
+    let output_file = config.output.as_deref().unwrap_or("curly.out").to_string();
+
     // Write the final output to the specified file
-    let output_final = output.lock().unwrap();
+    let (output_final, errors)  = run(config);
     if let Err(e) = fs::write(&output_file, &*output_final) {
         error!("Unable to write to file {}: {}", output_file, e);
     }
 
-    // Report any errors encountered during processing
-    let error_count_guard = error_count.lock().unwrap();
-    if !error_count_guard.is_empty() {
-        for (dir, count) in error_count_guard.iter() {
-            warn!(
-                "Directory '{}' had {} file(s) that could not be processed",
-                dir, count
-            );
-        }
-    }
+    warn!("{}", errors);
 }
 
 /// Iterates over files in a directory and processes each one, collecting the results into `output`.
@@ -319,4 +329,14 @@ fn process_file(
     }
     output.push_str(&format!("\n{}\n\n", delimiter));
     Ok(())
+}
+
+
+// A function which returns the directory structurre of a given path
+pub fn directory_peak(dir_path: &str) -> String {
+    let path = Path::new(dir_path);
+    let output = Arc::new(Mutex::new(String::new()));
+    process_directory_structure(path, &output, 0, &Vec::new(), "", path);
+    let output_guard = output.lock().unwrap();
+    output_guard.clone().to_string()
 }
