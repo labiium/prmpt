@@ -7,7 +7,7 @@ use curly::{
     Config,
     inject,      // The inject function
     load_config, // The load_config function
-    run,         // The run function
+    run_and_write,         // The run function
 };
 
 /// A simple program to convert a code repository into an LLM prompt and inject code into a repository
@@ -93,7 +93,7 @@ fn main() {
                 prompts: None,
             };
 
-            run(config);
+            run_and_write(config);
         }
         Some(reserved) if RESERVED_KEYWORDS.contains(&reserved) => {
             // Prevent usage of reserved keywords as config names
@@ -108,7 +108,7 @@ fn main() {
             match load_config() {
                 Ok(configs) => {
                     if let Some(config) = configs.get(config_name) {
-                        run(config.clone());
+                        run_and_write(config.clone());
                     } else {
                         eprintln!("Configuration '{}' not found in curly.yaml", config_name);
                     }
@@ -123,7 +123,7 @@ fn main() {
             match load_config() {
                 Ok(configs) => {
                     if let Some(config) = configs.get("base") {
-                        run(config.clone());
+                        run_and_write(config.clone());
                     } else {
                         eprintln!("Configuration 'base' not found in curly.yaml");
                     }
