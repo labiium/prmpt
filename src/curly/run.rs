@@ -336,7 +336,19 @@ fn process_file(
 pub fn directory_peak(dir_path: &str) -> String {
     let path = Path::new(dir_path);
     let output = Arc::new(Mutex::new(String::new()));
-    process_directory_structure(path, &output, 0, &Vec::new(), "", path);
+    let ignore_patterns = vec!(
+        Pattern::new("curly.out").unwrap(),
+        Pattern::new(".git").unwrap(),
+        Pattern::new("curly.yaml").unwrap(),
+        Pattern::new("node_modules").unwrap(),
+        Pattern::new("target").unwrap(),
+        Pattern::new("dist").unwrap(),
+        Pattern::new("build").unwrap(),
+        Pattern::new("venv").unwrap(),
+        Pattern::new("env").unwrap()
+    );
+    
+    process_directory_structure(path, &output, 0, &ignore_patterns, "", path);
     let output_guard = output.lock().unwrap();
     output_guard.clone().to_string()
 }

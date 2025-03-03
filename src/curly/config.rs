@@ -1,10 +1,10 @@
 //! Holds the configuration structure (`Config`) and functionality to load configurations.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, path::Path};
 
 /// Configuration structure that holds various options for generating or injecting code.
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
     /// Path to the code repository.
     pub path: Option<String>,
