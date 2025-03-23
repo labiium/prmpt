@@ -67,24 +67,60 @@ pub fn get_default_ignore_patterns(language: &str) -> Vec<Pattern> {
     }
 }
 
-/// Determines whether a given path should be ignored based on a list of glob `Pattern`s.
-/// The path is first made relative to `base_path` before matching. If any pattern
-/// matches, the file or directory is ignored.
+/// Determines if a path should be ignored based on a set of ignore patterns.
+/// Handles glob patterns specially to respect directory boundaries.
 pub fn should_ignore(path: &Path, base_path: &Path, ignore_patterns: &[Pattern]) -> bool {
+    // Convert to a relative path for pattern matching
     let relative_path = match path.strip_prefix(base_path) {
-        Ok(rel_path) => rel_path,
-        Err(_) => path,
+        Ok(p) => p.to_string_lossy(),
+        Err(_) => return false,
     };
-
+    
+    let relative_path_str = relative_path.to_string();
+    
     for pattern in ignore_patterns {
-        if pattern.matches_path(relative_path)
-            || relative_path
-                .components()
-                .any(|comp| pattern.matches(&comp.as_os_str().to_string_lossy()))
-        {
+        let pattern_str = pattern.as_str();
+        
+        // Handle directory-specific patterns (e.g., src/*.rs)
+        if pattern_str.contains('/') && pattern_str.contains('*') {
+            // Split at the last slash to separate directory part from file pattern
+            if let Some(last_slash_pos) = pattern_str.rfind('/') {
+                let dir_part = &pattern_str[..=last_slash_pos]; // Include the slash
+                let file_pattern = &pattern_str[last_slash_pos + 1..];
+                
+                // If the pattern ends with a slash (directory only pattern)
+                if file_pattern.is_empty() {
+                    if relative_path_str.starts_with(dir_part) {
+                        return true;
+                    }
+                    continue;
+                }
+                
+                // Check if path starts with the directory part
+                if relative_path_str.starts_with(dir_part) {
+                    // Get the remaining part of the path after the directory
+                    let remaining_path = &relative_path_str[dir_part.len()..];
+                    
+                    // Ensure there are no additional slashes (not in subdirectories)
+                    if !remaining_path.contains('/') {
+                        // Match the file pattern against the remaining path
+                        if let Ok(file_glob) = Pattern::new(file_pattern) {
+                            if file_glob.matches(remaining_path) {
+                                return true;
+                            }
+                        }
+                    }
+                    continue;
+                }
+            }
+        }
+        
+        // Standard full pattern matching
+        if pattern.matches(&relative_path) {
             return true;
         }
     }
+    
     false
 }
 

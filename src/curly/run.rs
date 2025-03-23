@@ -29,7 +29,7 @@ use glob::Pattern;
 /// 5. Write the final result to `config.output` (defaults to "curly.out").
 /// 
 /// Returns a tuple of the final output and any errors encountered during processing.
-pub fn run(config: Config) -> (String, String) {
+pub fn run(config: Config) -> (String, Vec<String>) {
     let path = config.path.as_deref().unwrap_or(".").to_string();
     let repo_path = Path::new(&path);
 
@@ -113,11 +113,11 @@ pub fn run(config: Config) -> (String, String) {
     );
 
     // Report any errors encountered during processing
-    let mut errors = String::new();
+    let mut errors = vec!();
     let error_count_guard = error_count.lock().unwrap();
     if !error_count_guard.is_empty() {
         for (dir, count) in error_count_guard.iter() {
-            errors.push_str(&format!(
+            errors.push(format!(
                 "Directory '{}' had {} file(s) that could not be processed\n",
                 dir, count
             ));
@@ -135,7 +135,9 @@ pub fn run_and_write(config: Config) {
         error!("Unable to write to file {}: {}", output_file, e);
     }
 
-    warn!("{}", errors);
+    if !errors.is_empty() {
+        errors.iter().for_each(|e| warn!("{}", e));
+    }
 }
 
 /// Iterates over files in a directory and processes each one, collecting the results into `output`.
