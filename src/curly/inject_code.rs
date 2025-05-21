@@ -2,110 +2,170 @@
 //! back into the repository at specified file paths.
 
 use log::{error, info, warn};
-use std::{fs, io, path::PathBuf};
+use std::{
+    fs, // Removed io
+    path::Path,
+};
+use rand::Rng;
+use rand::distr::Alphanumeric; 
+use rand::rngs::ThreadRng;
+use crate::curly::traits::InjectOperation; // Import the trait
+use anyhow::{Context, Error}; // For the Result type & context
 
-/// Injects code from the specified `input` file into the repository at `path`.
-///
-/// This function reads the entire input file, looking for sections that are wrapped
-/// in code-block delimiters (by default "```"), and writes each code block to
-/// the corresponding file path.
-///
-/// # Parameters
-/// - `input`: The path to the file containing the generated code blocks.
-/// - `path`: The base path to which file paths in the input file will be resolved.
-///
-/// # Returns
-/// - `Result<(), io::Error>`: An `Ok` value if injection succeeds, or an error
-///   otherwise.
-pub fn inject(input: &str, path: &str) -> Result<(), io::Error> {
-    // Read the input file content
-    let contents = fs::read_to_string(input)?;
-    let delimiter = "```";
-    let mut lines = contents.lines();
-    let mut file_path: Option<PathBuf> = None;
-    let mut code_block = String::new();
-    let mut in_code_block = false;
+/// Struct for implementing the InjectOperation trait.
+#[derive(Default)]
+pub struct Injector;
 
-    info!("Starting to process the input file...");
+impl InjectOperation for Injector {
+    /// Injects code from a specified input file into a target repository path.
+    /// This method encapsulates the original `inject` function's logic.
+    fn inject(&self, input_path: &Path, repo_path: &Path) -> Result<(), Error> {
+        // Canonicalize the base repo path
+        let base_path_canon = fs::canonicalize(repo_path)
+            .with_context(|| format!("Failed to canonicalize base repository path: '{}'", repo_path.display()))?;
+        info!("Canonicalized base repository path: {:?}", base_path_canon);
 
-    while let Some(line) = lines.next() {
-        info!("Processing line: {:?}", line);
+        let contents = fs::read_to_string(input_path)
+            .with_context(|| format!("Failed to read input file: '{}'", input_path.display()))?;
+        
+        let delimiter = "```";
+        let mut lines = contents.lines();
+        let mut current_file_target_path_str: Option<String> = None;
+        let mut code_block = String::new();
+        let mut in_code_block = false;
 
-        // Detect file path in the format:
-        //   ### `path/to/file`
-        //   **`path/to/file`**
-        //   or simply `path/to/file`
-        if !in_code_block
-            && ((line.trim_start().starts_with("### `") && line.trim_end().ends_with('`'))
-                || (line.trim_start().starts_with("**`") && line.trim_end().ends_with("`**"))
-                || (line.trim_start().starts_with('`')
-                    && line.trim_end().ends_with('`')
-                    && line.len() > 3))
-        {
-            let relative_path = format!("{}/{}", path, extract_path(line));
-            if !relative_path.trim().is_empty() {
-                file_path = Some(PathBuf::from(relative_path.trim()));
-                info!("Detected file path: {:?}", file_path);
-            } else {
-                warn!("Detected an empty file path! Skipping...");
+        info!("Starting to process the input file for injection: {:?}", input_path);
+
+        while let Some(line) = lines.next() {
+            if !in_code_block
+                && ((line.trim_start().starts_with("### `") && line.trim_end().ends_with('`'))
+                    || (line.trim_start().starts_with("**`") && line.trim_end().ends_with("`**"))
+                    || (line.trim_start().starts_with('`')
+                        && line.trim_end().ends_with('`')
+                        && line.len() > 3))
+            {
+                let extracted_path_str = extract_path(line);
+                if !extracted_path_str.trim().is_empty() {
+                    current_file_target_path_str = Some(extracted_path_str.to_string());
+                    info!("Detected relative file path for injection: {:?}", current_file_target_path_str);
+                } else {
+                    warn!("Detected an empty file path! Skipping...");
+                    current_file_target_path_str = None;
+                }
             }
-        }
-        // Detect code block delimiter
-        else if line.trim_start().starts_with(delimiter) {
-            in_code_block = !in_code_block;
-            if !in_code_block {
-                // Closing a code block
-                if let Some(ref path) = file_path {
-                    if !code_block.is_empty() {
-                        if let Some(parent) = path.parent() {
-                            info!("Creating directory: {:?}", parent);
-                            if let Err(e) = fs::create_dir_all(parent) {
-                                error!("Failed to create directory: {:?}", e);
-                                return Err(e);
-                            }
+            else if line.trim_start().starts_with(delimiter) {
+                in_code_block = !in_code_block;
+                if !in_code_block { // Closing a code block
+                    if let Some(ref target_file_rel_str) = current_file_target_path_str {
+                        if code_block.is_empty() {
+                            warn!("Empty code block detected for path: {:?}", target_file_rel_str);
+                            current_file_target_path_str = None; 
+                            continue;
                         }
-                        info!("Writing to file: {:?}", path);
-                        if let Err(e) = fs::write(path, code_block.trim_end()) {
-                            error!("Failed to write to file: {:?}", e);
-                            return Err(e);
+
+                        let full_target_path = base_path_canon.join(target_file_rel_str);
+                        let target_filename = match full_target_path.file_name() {
+                            Some(name) => name.to_os_string(),
+                            None => {
+                                error!("Could not extract filename from path: {:?}", full_target_path);
+                                current_file_target_path_str = None; code_block.clear(); continue;
+                            }
+                        };
+                        
+                        let parent_dir_for_file = full_target_path.parent().unwrap_or_else(|| Path::new(""));
+
+                        // Ensure parent directory exists, trying to canonicalize it.
+                        let canonical_parent_dir = if parent_dir_for_file.as_os_str().is_empty() || parent_dir_for_file == base_path_canon.as_path() {
+                             base_path_canon.clone()
+                        } else if !parent_dir_for_file.is_absolute() && parent_dir_for_file.starts_with(&base_path_canon) {
+                            // If parent_dir_for_file is already relative to base_path_canon correctly
+                            fs::create_dir_all(&parent_dir_for_file)
+                                .with_context(|| format!("Failed to create parent directory: {:?}", parent_dir_for_file))?;
+                            fs::canonicalize(&parent_dir_for_file)
+                                .with_context(|| format!("Failed to canonicalize parent directory: {:?}", parent_dir_for_file))?
+                        } else {
+                             // This case handles when full_target_path.parent() is absolute or needs careful joining
+                             // For simplicity, assume it's relative or directly under base_path_canon as handled by base_path_canon.join()
+                             // If it's already absolute and within repo_path, fs::create_dir_all should handle it.
+                             // This part might need more robust handling for complex symlink scenarios outside typical usage.
+                             fs::create_dir_all(parent_dir_for_file)
+                                 .with_context(|| format!("Failed to create parent directory: {:?}", parent_dir_for_file))?;
+                             fs::canonicalize(parent_dir_for_file)
+                                 .with_context(|| format!("Failed to canonicalize parent directory: {:?}", parent_dir_for_file))?
+                        };
+
+
+                        let final_file_path_canon = canonical_parent_dir.join(&target_filename);
+                        info!("Final canonical file path for injection: {:?}", final_file_path_canon);
+
+                        let mut rng = ThreadRng::default();
+                        let random_string: String = (&mut rng)
+                            .sample_iter(&Alphanumeric)
+                            .take(6)
+                            .map(char::from)
+                            .collect();
+                        let temp_filename = format!(".{}.tmp.{}", target_filename.to_string_lossy(), random_string);
+                        let temp_file_path = canonical_parent_dir.join(temp_filename);
+
+                        info!("Writing to temporary file: {:?}", temp_file_path);
+                        match fs::write(&temp_file_path, code_block.trim_end()) {
+                            Ok(_) => {
+                                info!("Successfully wrote to temporary file. Renaming to: {:?}", final_file_path_canon);
+                                if let Err(e) = fs::rename(&temp_file_path, &final_file_path_canon) {
+                                    let rename_err = Error::new(e).context(format!("Failed to rename temporary file {:?} to {:?}", temp_file_path, final_file_path_canon));
+                                    error!("{:?}", rename_err);
+                                    if let Err(remove_err) = fs::remove_file(&temp_file_path) {
+                                        error!("Additionally, failed to remove temporary file {:?}: {}", temp_file_path, remove_err);
+                                    }
+                                    // Decide if this is a critical error for the whole inject operation
+                                    // For now, log and continue, but one could return rename_err here.
+                                } else {
+                                    info!("Successfully injected code into {:?}", final_file_path_canon);
+                                }
+                            }
+                            Err(e) => {
+                                error!("Failed to write to temporary file {:?}: {}", temp_file_path, e);
+                                if temp_file_path.exists() {
+                                    if let Err(remove_err) = fs::remove_file(&temp_file_path) {
+                                        error!("Additionally, failed to remove temporary file {:?}: {}", temp_file_path, remove_err);
+                                    }
+                                }
+                            }
                         }
                         code_block.clear();
                     } else {
-                        warn!("Empty code block detected for path: {:?}", path);
+                        warn!("Code block closed without a file path being set!");
                     }
+                    current_file_target_path_str = None; 
                 } else {
-                    warn!("Code block closed without a file path!");
+                    info!("Entering a code block...");
+                    code_block.clear();
                 }
-                file_path = None; // Reset file_path after writing the file
-            } else {
-                // Opening a new code block
-                info!("Entering a code block...");
-                code_block.clear(); // Clear the code block string when entering a new code block
+            }
+            else if in_code_block {
+                code_block.push_str(line);
+                code_block.push('\n');
             }
         }
-        // Add line to code block
-        else if in_code_block {
-            code_block.push_str(line);
-            code_block.push('\n');
-        }
-        // Outside code block
-        else {
-            info!("Outside code block and no file path detected, continuing...");
-        }
+        info!("Finished processing the input file for injection.");
+        Ok(())
     }
-
-    info!("Finished processing the input file.");
-    Ok(())
 }
+
+// The old `inject` function is removed as its logic is now in `Injector::inject`.
 
 /// Helper function for extracting the path from a line
 /// that looks like `### `path/to/file` or **`path/to/file`**, etc.
 fn extract_path(input: &str) -> &str {
-    if input.starts_with("### `") && input.ends_with('`') {
-        &input[5..input.len() - 1]
-    } else if input.starts_with("**`") && input.ends_with("`**") {
-        &input[3..input.len() - 3]
+    // Trim leading/trailing whitespace which might affect path extraction
+    let trimmed_input = input.trim();
+    if trimmed_input.starts_with("### `") && trimmed_input.ends_with('`') {
+        &trimmed_input[5..trimmed_input.len() - 1]
+    } else if trimmed_input.starts_with("**`") && trimmed_input.ends_with("`**") {
+        &trimmed_input[3..trimmed_input.len() - 3]
+    } else if trimmed_input.starts_with('`') && trimmed_input.ends_with('`') { // Generic backtick case
+        &trimmed_input[1..trimmed_input.len() - 1]
     } else {
-        &input[1..input.len() - 1]
+        trimmed_input // Fallback if no known pattern matches, assume the line itself is the path
     }
-}
+} // Added missing closing brace

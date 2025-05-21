@@ -1,7 +1,7 @@
 [package]
 name = "curly"
 version = "0.2.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 # Existing dependencies
@@ -19,3 +19,9 @@ regex = "1.7.1"
 tree-sitter = "0.20.7"
 tree-sitter-python = { version = "0.20.0" }
 serde_json = "1.0.135"
+ignore = "0.4.23"
+rand = "0.9.1"
+anyhow = "1.0.98"
+
+[dev-dependencies]
+insta = { version = "1.43.1", features = ["yaml"] }
