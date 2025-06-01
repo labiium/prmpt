@@ -54,6 +54,7 @@ impl GenerateOperation for Generator {
         ignore_patterns_for_structure.push(glob::Pattern::new(output_file_name).unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new(".git").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new("curly.yaml").unwrap());
+        ignore_patterns_for_structure.push(glob::Pattern::new(".gitignore").unwrap()); // Added this line
 
         let output_arc = Arc::new(Mutex::new(String::new()));
         let error_count_arc = Arc::new(Mutex::new(HashMap::new()));
@@ -165,7 +166,7 @@ fn get_default_ignore_patterns_for_ignore(language: &str) -> Vec<String> {
             "node_modules/".to_string(), "npm-debug.log*".to_string(), "yarn-debug.log*".to_string(),
             "yarn-error.log*".to_string(), "dist/".to_string(), "build/".to_string(), ".DS_Store".to_string(),
         ],
-        "rust" => vec!["target/".to_string(), "Cargo.lock".to_string()],
+        "rust" => vec!["target".to_string(), "Cargo.lock".to_string()], // Changed "target/" to "target"
         _ => Vec::new(),
     }
 }
@@ -193,6 +194,9 @@ fn process_directory_files(
     }
     if let Err(e) = override_builder.add(".git") {
         warn!("Failed to add .git ignore pattern: {}", e);
+    }
+    if let Err(e) = override_builder.add(".gitignore") { // Added this
+        warn!("Failed to add .gitignore ignore pattern: {}", e);
     }
     if let Err(e) = override_builder.add("curly.yaml") {
         warn!("Failed to add curly.yaml ignore pattern: {}", e);
@@ -231,8 +235,10 @@ fn process_directory_files(
         walker_builder.git_ignore(false);
         walker_builder.git_global(false);
         walker_builder.git_exclude(false); // Also disable per-repository core.excludesFile
+        walker_builder.parents(false); // Disable parent ignore files
+        walker_builder.require_git(false); // Don't require a .git directory for parent search
     }
-    // Otherwise, .gitignore files are respected by default.
+    // Otherwise, .gitignore files are respected by default (and parent search is enabled).
     
     // Canonicalize base_path for robust prefix stripping, important if `dir` could be a symlink
     // or contains `..` components.
