@@ -1,0 +1,6 @@
+---
+source: tests/generate_snapshots.rs
+assertion_line: 74
+expression: output_string
+---
+"sample_project_1\n├── README.md\n├── main.py\n└── .gitignore\n\n"

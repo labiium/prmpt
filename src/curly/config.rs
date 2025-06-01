@@ -28,11 +28,24 @@ pub struct Config {
     pub display_outputs: Option<bool>,
 }
 
+pub const DEFAULT_CONFIG_KEY: &str = "base";
+
 /// Loads configuration from a local `curly.yaml` file.
-/// The file can contain multiple named configurations, each mapping to a `Config`.
+/// The file can contain a single configuration or multiple named configurations.
 pub fn load_config() -> Result<HashMap<String, Config>, Box<dyn std::error::Error>> {
     let config_path = Path::new("curly.yaml");
     let contents = fs::read_to_string(config_path)?;
-    let configs: HashMap<String, Config> = serde_yaml::from_str(&contents)?;
-    Ok(configs)
+
+    // Attempt to deserialize as a single Config first
+    if let Ok(single_config) = serde_yaml::from_str::<Config>(&contents) {
+        let mut configs = HashMap::new();
+        configs.insert(DEFAULT_CONFIG_KEY.to_string(), single_config);
+        return Ok(configs);
+    }
+
+    // If single Config deserialization fails, try as HashMap<String, Config>
+    match serde_yaml::from_str::<HashMap<String, Config>>(&contents) {
+        Ok(multiple_configs) => Ok(multiple_configs),
+        Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
+    }
 }

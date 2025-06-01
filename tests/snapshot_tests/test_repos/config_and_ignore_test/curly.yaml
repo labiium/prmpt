@@ -1,0 +1,3 @@
+language: rust
+use_gitignore: true
+output: "test_output.txt"

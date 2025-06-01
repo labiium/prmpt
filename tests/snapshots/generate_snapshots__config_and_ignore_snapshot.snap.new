@@ -1,0 +1,6 @@
+---
+source: tests/generate_snapshots.rs
+assertion_line: 117
+expression: output_string
+---
+"config_and_ignore_test\n├── target\n│   └── some_file.txt\n├── include_me.rs\n├── .gitignore\n└── main.rs\n\n```curly.yaml\nlanguage: rust\nuse_gitignore: true\noutput: \"test_output.txt\"\n\n```\n\n"

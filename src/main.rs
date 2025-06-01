@@ -7,6 +7,7 @@ use log::LevelFilter;
 use curly::{
     Config,
     load_config,
+    DEFAULT_CONFIG_KEY, // Added import
     // inject, // Will use Injector::inject
     // run_and_write, // Will use the updated run_and_write that takes a Generator
     Generator,  // Added
@@ -145,7 +146,7 @@ fn main() {
         }
         None => {
             // No subcommand was provided, try to load config based on `cli.config_name`
-            let config_to_load = cli.config_name.as_deref().unwrap_or("base");
+            let config_to_load = cli.config_name.as_deref().unwrap_or(DEFAULT_CONFIG_KEY);
             match load_config() {
                 Ok(configs) => {
                     if let Some(config) = configs.get(config_to_load) {

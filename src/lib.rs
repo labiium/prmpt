@@ -3,7 +3,7 @@
 /// so they can be used directly from `main.rs`.
 pub mod curly;
 
-pub use curly::config::{Config, load_config};
+pub use curly::config::{Config, load_config, DEFAULT_CONFIG_KEY};
 // pub use curly::inject_code::inject; // Replaced by Injector
 pub use curly::inject_code::Injector;   // Added
 
