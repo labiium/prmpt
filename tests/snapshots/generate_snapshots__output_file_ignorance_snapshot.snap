@@ -1,0 +1,42 @@
+---
+source: tests/generate_snapshots.rs
+expression: normalized_output
+---
+output_file_ignorance_test
+├── sub_dir
+│   ├── ignore_this.out
+│   └── something.txt
+├── main.rs
+├── curly.out
+├── some_other_file.txt
+└── another.out
+
+```sub_dir/something.txt
+text in sub dir
+
+```
+
+```sub_dir/ignore_this.out
+nested output file
+
+```
+
+```main.rs
+fn main() { println!("hello"); }
+
+```
+
+```curly.out
+some previous output
+
+```
+
+```some_other_file.txt
+other text
+
+```
+
+```another.out
+another output file
+
+```

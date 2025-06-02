@@ -151,3 +151,40 @@ fn test_config_and_ignore_false_snapshot() {
     // Snapshot name will be `generate_snapshots__test_config_and_ignore_false_snapshot.snap`
     assert_yaml_snapshot!(output_string);
 }
+
+#[test]
+fn output_file_ignorance_snapshot() {
+    let test_dir = get_test_repo_path("output_file_ignorance_test");
+    let config = Config {
+        path: Some(test_dir.to_str().unwrap().to_string()),
+        output: Some("test_run_output.out".to_string()), // This file should also be ignored.
+        ignore: None, // No specific additional ignores for this test from config
+        delimiter: Some("```".to_string()),
+        language: Some("rust".to_string()), // Or generic, doesn't matter much for this test
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false), // Focus on *.out and curly.yaml ignores
+        display_outputs: Some(false),
+    };
+
+    let generator = Generator;
+    match generator.run(&config) {
+        Ok((output, _errors)) => {
+            // Normalize paths in the output for consistent snapshots
+            // It's crucial to replace the absolute path part with a placeholder.
+            // The `get_test_repo_path` gives an absolute path. We need to strip this.
+            let repo_root_string = test_dir.to_string_lossy().to_string();
+            let normalized_output = output.replace(&repo_root_string, "TEST_REPO_ROOT");
+            
+            // Further normalization: replace backslashes on Windows if any occur in paths
+            let normalized_output = normalized_output.replace("\\", "/");
+
+            // Snapshot name will be: output_file_ignorance_snapshot
+            insta::assert_snapshot!("output_file_ignorance_snapshot", normalized_output);
+        }
+        Err(e) => {
+            panic!("Failed to run generator for output_file_ignorance_test: {:?}", e);
+        }
+    }
+}

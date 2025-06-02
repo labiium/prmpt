@@ -1,0 +1,5 @@
+---
+source: tests/generate_snapshots.rs
+expression: output_string
+---
+"config_and_ignore_test\n├── main.rs\n└── include_me.rs\n\n```include_me.rs\n// This file should be included.\nfn main() {\n    println!(\"Hello from include_me.rs\");\n}\n\n```\n\n```main.rs\n// This is the main.rs file.\n// It should be included.\n\nfn main() {\n    println!(\"Hello from main.rs\");\n}\n\n```\n\n"
