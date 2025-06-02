@@ -185,6 +185,7 @@ dependencies = [
  "clap",
  "env_logger",
  "glob",
+ "globset",
  "ignore",
  "insta",
  "log",

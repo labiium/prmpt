@@ -1,0 +1,5 @@
+---
+source: tests/generate_snapshots.rs
+expression: output_string
+---
+"config_and_ignore_false_test\n└── another_rust_file.rs\n\n```another_rust_file.rs\n// This is another Rust file.\n// It should be included.\n\nfn helper_function() {\n    println!(\"Hello from another_rust_file.rs\");\n}\n\n```\n\n"
