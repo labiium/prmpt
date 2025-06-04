@@ -186,26 +186,29 @@ fn process_directory_files(
     walker_builder.add_custom_ignore_filename(".curlyignore"); // Support .curlyignore
 
     // Create an OverrideBuilder and add all patterns to it.
-    let mut override_builder = OverrideBuilder::new(dir); // `dir` is the root for these patterns
+    // Use OverrideBuilder for ignore crate patterns. Prefixing globs with '!' makes
+    // them act as ignore rules instead of whitelists.
+    let mut override_builder = OverrideBuilder::new(dir);
 
     // Add patterns to ensure specific files/dirs are ignored.
-    if let Err(e) = override_builder.add(output_file_name) { // This ensures the output file itself is ignored.
+    // Ensure the output file itself is ignored
+    if let Err(e) = override_builder.add(&format!("!{}", output_file_name)) {
         warn!("Failed to add output file ignore pattern '{}': {}", output_file_name, e);
     }
-    if let Err(e) = override_builder.add(".git") {
+    if let Err(e) = override_builder.add("!.git") {
         warn!("Failed to add .git ignore pattern: {}", e);
     }
-    if let Err(e) = override_builder.add(".gitignore") { // Added this
+    if let Err(e) = override_builder.add("!.gitignore") {
         warn!("Failed to add .gitignore ignore pattern: {}", e);
     }
-    if let Err(e) = override_builder.add("curly.yaml") {
+    if let Err(e) = override_builder.add("!curly.yaml") {
         warn!("Failed to add curly.yaml ignore pattern: {}", e);
     }
 
     // Add patterns from config.ignore
     if let Some(ignore_list) = &config.ignore {
         for pattern_str in ignore_list {
-            if let Err(e) = override_builder.add(pattern_str) {
+            if let Err(e) = override_builder.add(&format!("!{}", pattern_str)) {
                 warn!("Failed to add custom ignore pattern '{}': {}", pattern_str, e);
             }
         }
@@ -215,7 +218,7 @@ fn process_directory_files(
     if let Some(language) = config.language.as_deref() {
         let default_patterns = get_default_ignore_patterns_for_ignore(language);
         for pattern_str in default_patterns {
-            if let Err(e) = override_builder.add(&pattern_str) {
+            if let Err(e) = override_builder.add(&format!("!{}", pattern_str)) {
                 warn!("Failed to add default ignore pattern '{}': {}", pattern_str, e);
             }
         }
@@ -250,40 +253,30 @@ fn process_directory_files(
         }
     };
 
-    let walker = walker_builder.build_parallel();
+    let walker = walker_builder.build();
 
-    walker.run(|| {
-        // Each worker thread gets its own Box<FnMut...>, important for thread safety if Mutexes are involved.
-        // Here, local_output is per-file, and global output uses a Mutex.
-        Box::new(|entry_result| {
-            match entry_result {
-                Ok(entry) => {
-                    let path = entry.path();
-                    if path.is_file() {
-                        let mut local_output = String::new();
-                        // Pass canonical_base_path for correct prefix stripping in process_file
-                        if let Err(e) = process_file(path, &mut local_output, &canonical_base_path, delimiter, config) {
-                            let dir_key = path.parent().unwrap_or_else(|| Path::new("")).to_string_lossy().to_string();
-                            let mut error_count_guard = error_count.lock().unwrap();
-                            *error_count_guard.entry(dir_key).or_insert(0) += 1;
-                            debug!("Failed to process file {}: {}", path.display(), e);
-                        } else {
-                            // If processing succeeded and generated output, append it
-                            if !local_output.is_empty() {
-                                let mut output_guard = output.lock().unwrap();
-                                output_guard.push_str(&local_output);
-                            }
-                        }
+    for entry_result in walker {
+        match entry_result {
+            Ok(entry) => {
+                let path = entry.path();
+                if path.is_file() {
+                    let mut local_output = String::new();
+                    if let Err(e) = process_file(path, &mut local_output, &canonical_base_path, delimiter, config) {
+                        let dir_key = path.parent().unwrap_or_else(|| Path::new("")).to_string_lossy().to_string();
+                        let mut error_count_guard = error_count.lock().unwrap();
+                        *error_count_guard.entry(dir_key).or_insert(0) += 1;
+                        debug!("Failed to process file {}: {}", path.display(), e);
+                    } else if !local_output.is_empty() {
+                        let mut output_guard = output.lock().unwrap();
+                        output_guard.push_str(&local_output);
                     }
                 }
-                Err(e) => {
-                    // Log errors from the directory walking process itself
-                    warn!("Error walking directory entry: {}", e);
-                }
             }
-            ignore::WalkState::Continue // Continue walking
-        })
-    });
+            Err(e) => {
+                warn!("Error walking directory entry: {}", e);
+            }
+        }
+    }
 }
 
 /// Processes a single file, adding its contents (or relevant docstrings) to `output`.

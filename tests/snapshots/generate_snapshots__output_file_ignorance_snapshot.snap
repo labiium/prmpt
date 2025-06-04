@@ -3,31 +3,15 @@ source: tests/generate_snapshots.rs
 expression: normalized_output
 ---
 output_file_ignorance_test
-├── sub_dir
-│   ├── ignore_this.out
-│   └── something.txt
-├── main.rs
-├── curly.out
+├── another.out
 ├── some_other_file.txt
-└── another.out
+├── main.rs
+└── sub_dir
+    ├── something.txt
+    └── ignore_this.out
 
-```sub_dir/something.txt
-text in sub dir
-
-```
-
-```sub_dir/ignore_this.out
-nested output file
-
-```
-
-```main.rs
-fn main() { println!("hello"); }
-
-```
-
-```curly.out
-some previous output
+```another.out
+another output file
 
 ```
 
@@ -36,7 +20,17 @@ other text
 
 ```
 
-```another.out
-another output file
+```main.rs
+fn main() { println!("hello"); }
+
+```
+
+```sub_dir/something.txt
+text in sub dir
+
+```
+
+```sub_dir/ignore_this.out
+nested output file
 
 ```
