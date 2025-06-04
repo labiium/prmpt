@@ -2,4 +2,4 @@
 source: tests/generate_snapshots.rs
 expression: output_string
 ---
-"sample_project_1\n├── README.md\n└── main.py\n\n```main.py\ndef hello_world():\n    \"\"\"Prints a greeting message.\"\"\"\n\nclass Greeter:\n    \"\"\"A simple class for greeting.\"\"\"\n    def __init__(self, name):\n\n\n    def greet(self):\n\n\n\n\n```\n\n"
+"sample_project_1\n├── main.py\n└── README.md\n\n```main.py\ndef hello_world():\n    \"\"\"Prints a greeting message.\"\"\"\n\nclass Greeter:\n    \"\"\"A simple class for greeting.\"\"\"\n    def __init__(self, name):\n\n\n    def greet(self):\n\n\n\n\n```\n\n"
