@@ -205,7 +205,8 @@ Each named section in `curly.yaml` maps to a `Config` structure, allowing you to
 
 To seamlessly use Curly’s `inject` command, the LLM’s output must include proper file path designations and code blocks. A recommended format is:
 
-1. A line with the relative file path enclosed in backticks or markdown headings, for example:
+1. A line with the relative file path. This can be enclosed in backticks or markdown headings,
+   but a plain line works as well. For example:
    ```
    src/main.rs
    ```
@@ -241,4 +242,4 @@ Curly leverages [Tree-sitter](https://tree-sitter.github.io/tree-sitter/) (via t
 
 ### Injecting LLM Output
 
-The injection process scans for the code block delimiter (by default, ````` ``` `````) and a designated file path prefix. Upon encountering a matching pattern, Curly writes the block’s content into that file, creating any needed parent directories. If multiple blocks reference the same file path, the tool overwrites the file in sequence.
+The injection process scans for the code block delimiter (by default, ````` ``` `````) and a file path listed directly before each block. The path line can be backticked or just a plain path. Upon encountering a matching pair, Curly writes the block’s content into that file, creating any needed parent directories. If multiple blocks reference the same file path, the tool overwrites the file in sequence.

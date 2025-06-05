@@ -142,6 +142,17 @@ impl InjectOperation for Injector {
                     code_block.clear();
                 }
             }
+            else if !in_code_block {
+                let trimmed = line.trim();
+                if !trimmed.is_empty()
+                    && !trimmed.starts_with('#')
+                    && !trimmed.starts_with(delimiter)
+                    && !trimmed.contains(' ')
+                {
+                    current_file_target_path_str = Some(trimmed.to_string());
+                    info!("Detected relative file path for injection: {:?}", current_file_target_path_str);
+                }
+            }
             else if in_code_block {
                 code_block.push_str(line);
                 code_block.push('\n');

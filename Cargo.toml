@@ -26,3 +26,4 @@ anyhow = "1.0.98"
 
 [dev-dependencies]
 insta = { version = "1.43.1", features = ["yaml"] }
+tempfile = "3"
