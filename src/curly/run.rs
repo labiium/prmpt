@@ -42,7 +42,7 @@ impl GenerateOperation for Generator {
         let output_file_name = config.output.as_deref().unwrap_or("curly.out");
         let delimiter = config.delimiter.as_deref().unwrap_or("```");
 
-        let mut ignore_patterns_for_structure: Vec<glob::Pattern> = 
+        let mut ignore_patterns_for_structure: Vec<glob::Pattern> =
             if let Some(ignore_list) = &config.ignore {
                 ignore_list
                     .iter()
@@ -55,6 +55,15 @@ impl GenerateOperation for Generator {
         ignore_patterns_for_structure.push(glob::Pattern::new(".git").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new("curly.yaml").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new(".gitignore").unwrap()); // Added this line
+
+        if let Some(language) = config.language.as_deref() {
+            for pattern_str in get_default_ignore_patterns_for_ignore(language) {
+                let trimmed = pattern_str.trim_end_matches('/');
+                if let Ok(pat) = glob::Pattern::new(trimmed) {
+                    ignore_patterns_for_structure.push(pat);
+                }
+            }
+        }
 
         let output_arc = Arc::new(Mutex::new(String::new()));
         let error_count_arc = Arc::new(Mutex::new(HashMap::new()));
@@ -163,8 +172,26 @@ fn get_default_ignore_patterns_for_ignore(language: &str) -> Vec<String> {
             ".webassets-cache".to_string(),
         ],
         "javascript" => vec![
-            "node_modules/".to_string(), "npm-debug.log*".to_string(), "yarn-debug.log*".to_string(),
-            "yarn-error.log*".to_string(), "dist/".to_string(), "build/".to_string(), ".DS_Store".to_string(),
+            "node_modules/".to_string(),
+            "npm-debug.log*".to_string(),
+            "yarn-debug.log*".to_string(),
+            "yarn-error.log*".to_string(),
+            "dist/".to_string(),
+            "build/".to_string(),
+            "out/".to_string(),
+            ".next/".to_string(),
+            ".DS_Store".to_string(),
+        ],
+        "typescript" => vec![
+            "node_modules/".to_string(),
+            "npm-debug.log*".to_string(),
+            "yarn-debug.log*".to_string(),
+            "yarn-error.log*".to_string(),
+            "dist/".to_string(),
+            "build/".to_string(),
+            "out/".to_string(),
+            ".next/".to_string(),
+            ".DS_Store".to_string(),
         ],
         "rust" => vec!["target".to_string(), "Cargo.lock".to_string()], // Changed "target/" to "target"
         _ => Vec::new(),

@@ -188,3 +188,93 @@ fn output_file_ignorance_snapshot() {
         }
     }
 }
+
+#[test]
+fn language_specific_ignore_snapshot() {
+    let test_dir = get_test_repo_path("python_ignore_test");
+    let config = Config {
+        path: Some(test_dir.to_str().unwrap().to_string()),
+        output: None,
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("python".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+
+    let generator = Generator;
+    match generator.run(&config) {
+        Ok((output, _errors)) => {
+            let repo_root_string = test_dir.to_string_lossy().to_string();
+            let normalized_output = output.replace(&repo_root_string, "TEST_REPO_ROOT");
+            let normalized_output = normalized_output.replace("\\", "/");
+            insta::assert_snapshot!("language_specific_ignore_snapshot", normalized_output);
+        }
+        Err(e) => {
+            panic!("Failed to run generator for python_ignore_test: {:?}", e);
+        }
+    }
+}
+
+#[test]
+fn language_specific_ignore_javascript_snapshot() {
+    let test_dir = get_test_repo_path("javascript_ignore_test");
+    let config = Config {
+        path: Some(test_dir.to_str().unwrap().to_string()),
+        output: None,
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("javascript".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+
+    let generator = Generator;
+    match generator.run(&config) {
+        Ok((output, _errors)) => {
+            let repo_root_string = test_dir.to_string_lossy().to_string();
+            let normalized_output = output.replace(&repo_root_string, "TEST_REPO_ROOT");
+            let normalized_output = normalized_output.replace("\\", "/");
+            insta::assert_snapshot!("language_specific_ignore_javascript_snapshot", normalized_output);
+        }
+        Err(e) => {
+            panic!("Failed to run generator for javascript_ignore_test: {:?}", e);
+        }
+    }
+}
+
+#[test]
+fn language_specific_ignore_typescript_snapshot() {
+    let test_dir = get_test_repo_path("typescript_ignore_test");
+    let config = Config {
+        path: Some(test_dir.to_str().unwrap().to_string()),
+        output: None,
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("typescript".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+
+    let generator = Generator;
+    match generator.run(&config) {
+        Ok((output, _errors)) => {
+            let repo_root_string = test_dir.to_string_lossy().to_string();
+            let normalized_output = output.replace(&repo_root_string, "TEST_REPO_ROOT");
+            let normalized_output = normalized_output.replace("\\", "/");
+            insta::assert_snapshot!("language_specific_ignore_typescript_snapshot", normalized_output);
+        }
+        Err(e) => {
+            panic!("Failed to run generator for typescript_ignore_test: {:?}", e);
+        }
+    }
+}
