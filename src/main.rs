@@ -12,7 +12,6 @@ use curly::{
     // run_and_write, // Will use the updated run_and_write that takes a Generator
     Generator,  // Added
     Injector,   // Added
-    GenerateOperation, // Added, for clarity or direct use
     InjectOperation,   // Added
 };
 use curly::run_and_write; // Corrected path for the utility function
