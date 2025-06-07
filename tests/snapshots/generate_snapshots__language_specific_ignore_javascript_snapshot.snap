@@ -1,0 +1,11 @@
+---
+source: tests/generate_snapshots.rs
+expression: normalized_output
+---
+javascript_ignore_test
+└── index.js
+
+```index.js
+console.log("js");
+
+```

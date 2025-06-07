@@ -1,0 +1,12 @@
+---
+source: tests/generate_snapshots.rs
+expression: normalized_output
+---
+python_ignore_test
+└── main.py
+
+```main.py
+def hello():
+    print("hello")
+
+```

@@ -1,0 +1,11 @@
+---
+source: tests/generate_snapshots.rs
+expression: normalized_output
+---
+typescript_ignore_test
+└── main.ts
+
+```main.ts
+console.log("ts");
+
+```
