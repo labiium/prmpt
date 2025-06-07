@@ -254,26 +254,21 @@ fn process_directory_files(
     };
 
     let walker = walker_builder.build();
+    let mut entries: Vec<_> = walker.filter_map(|e| e.ok()).collect();
+    entries.sort_by_key(|e| e.path().to_path_buf());
 
-    for entry_result in walker {
-        match entry_result {
-            Ok(entry) => {
-                let path = entry.path();
-                if path.is_file() {
-                    let mut local_output = String::new();
-                    if let Err(e) = process_file(path, &mut local_output, &canonical_base_path, delimiter, config) {
-                        let dir_key = path.parent().unwrap_or_else(|| Path::new("")).to_string_lossy().to_string();
-                        let mut error_count_guard = error_count.lock().unwrap();
-                        *error_count_guard.entry(dir_key).or_insert(0) += 1;
-                        debug!("Failed to process file {}: {}", path.display(), e);
-                    } else if !local_output.is_empty() {
-                        let mut output_guard = output.lock().unwrap();
-                        output_guard.push_str(&local_output);
-                    }
-                }
-            }
-            Err(e) => {
-                warn!("Error walking directory entry: {}", e);
+    for entry in entries {
+        let path = entry.path();
+        if path.is_file() {
+            let mut local_output = String::new();
+            if let Err(e) = process_file(path, &mut local_output, &canonical_base_path, delimiter, config) {
+                let dir_key = path.parent().unwrap_or_else(|| Path::new("")).to_string_lossy().to_string();
+                let mut error_count_guard = error_count.lock().unwrap();
+                *error_count_guard.entry(dir_key).or_insert(0) += 1;
+                debug!("Failed to process file {}: {}", path.display(), e);
+            } else if !local_output.is_empty() {
+                let mut output_guard = output.lock().unwrap();
+                output_guard.push_str(&local_output);
             }
         }
     }

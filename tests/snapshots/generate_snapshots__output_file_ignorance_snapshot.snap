@@ -1,5 +1,6 @@
 ---
 source: tests/generate_snapshots.rs
+assertion_line: 184
 expression: normalized_output
 ---
 output_file_ignorance_test
@@ -7,8 +8,8 @@ output_file_ignorance_test
 ├── main.rs
 ├── some_other_file.txt
 └── sub_dir
-    ├── something.txt
-    └── ignore_this.out
+    ├── ignore_this.out
+    └── something.txt
 
 ```another.out
 another output file
@@ -25,12 +26,12 @@ other text
 
 ```
 
-```sub_dir/something.txt
-text in sub dir
+```sub_dir/ignore_this.out
+nested output file
 
 ```
 
-```sub_dir/ignore_this.out
-nested output file
+```sub_dir/something.txt
+text in sub dir
 
 ```

@@ -63,7 +63,7 @@ pub fn process_directory_structure(
         false
     }
 
-    let entries: Vec<_> = WalkDir::new(dir)
+    let mut entries: Vec<_> = WalkDir::new(dir)
         .min_depth(1)
         .max_depth(1)
         .into_iter()
@@ -71,6 +71,9 @@ pub fn process_directory_structure(
         // Use the local helper function here
         .filter(|e| !should_ignore_for_structure(e.path(), base_path, ignore_patterns))
         .collect();
+
+    // Ensure deterministic ordering of directory traversal
+    entries.sort_by_key(|e| e.path().file_name().map(|n| n.to_os_string()));
 
     for (i, entry) in entries.iter().enumerate() {
         let path = entry.path();

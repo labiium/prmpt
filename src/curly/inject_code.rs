@@ -54,6 +54,13 @@ impl InjectOperation for Injector {
                 }
             }
             else if line.trim_start().starts_with(delimiter) {
+                // Handle optional path on the same line as the opening code fence
+                if !in_code_block {
+                    if let Some(path_on_fence) = extract_path_from_fence(line, delimiter) {
+                        current_file_target_path_str = Some(path_on_fence.to_string());
+                        info!("Detected relative file path for injection: {:?}", current_file_target_path_str);
+                    }
+                }
                 in_code_block = !in_code_block;
                 if !in_code_block { // Closing a code block
                     if let Some(ref target_file_rel_str) = current_file_target_path_str {
@@ -180,3 +187,24 @@ fn extract_path(input: &str) -> &str {
         trimmed_input // Fallback if no known pattern matches, assume the line itself is the path
     }
 } // Added missing closing brace
+
+/// Attempt to extract a file path from a line that begins with the code block
+/// delimiter. This supports Curly's own output format where the file path
+/// directly follows the opening fence, e.g. "```src/lib.rs" or
+/// "```rust src/lib.rs".
+fn extract_path_from_fence<'a>(line: &'a str, delimiter: &str) -> Option<&'a str> {
+    let remainder = line.trim_start().strip_prefix(delimiter)?.trim();
+    if remainder.is_empty() {
+        return None;
+    }
+    // If multiple tokens exist after the delimiter, assume the last one is the path
+    let tokens: Vec<&str> = remainder.split_whitespace().collect();
+    if tokens.len() == 1 {
+        let t = tokens[0];
+        if t.contains('/') || t.contains('.') {
+            return Some(t);
+        }
+        return None;
+    }
+    tokens.last().copied()
+}
