@@ -52,6 +52,7 @@ impl GenerateOperation for Generator {
                 Vec::new()
             };
         ignore_patterns_for_structure.push(glob::Pattern::new(output_file_name).unwrap());
+        ignore_patterns_for_structure.push(glob::Pattern::new("*.out").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new(".git").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new("curly.yaml").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new(".gitignore").unwrap()); // Added this line
@@ -170,6 +171,7 @@ fn get_default_ignore_patterns_for_ignore(language: &str) -> Vec<String> {
             ".mypy_cache/".to_string(), ".dmypy.json".to_string(), "dmypy.json".to_string(),
             ".coverage".to_string(), "htmlcov/".to_string(), "instance/".to_string(),
             ".webassets-cache".to_string(),
+            "*.out".to_string(),
         ],
         "javascript" => vec![
             "node_modules/".to_string(),
@@ -181,6 +183,7 @@ fn get_default_ignore_patterns_for_ignore(language: &str) -> Vec<String> {
             "out/".to_string(),
             ".next/".to_string(),
             ".DS_Store".to_string(),
+            "*.out".to_string(),
         ],
         "typescript" => vec![
             "node_modules/".to_string(),
@@ -192,8 +195,9 @@ fn get_default_ignore_patterns_for_ignore(language: &str) -> Vec<String> {
             "out/".to_string(),
             ".next/".to_string(),
             ".DS_Store".to_string(),
+            "*.out".to_string(),
         ],
-        "rust" => vec!["target".to_string(), "Cargo.lock".to_string()], // Changed "target/" to "target"
+        "rust" => vec!["target".to_string(), "Cargo.lock".to_string(), "*.out".to_string()],
         _ => Vec::new(),
     }
 }
@@ -221,6 +225,9 @@ fn process_directory_files(
     // Ensure the output file itself is ignored
     if let Err(e) = override_builder.add(&format!("!{}", output_file_name)) {
         warn!("Failed to add output file ignore pattern '{}': {}", output_file_name, e);
+    }
+    if let Err(e) = override_builder.add("!*.out") {
+        warn!("Failed to add generic .out ignore pattern: {}", e);
     }
     if let Err(e) = override_builder.add("!.git") {
         warn!("Failed to add .git ignore pattern: {}", e);
@@ -481,6 +488,7 @@ pub fn directory_peak(dir_path: &str) -> String {
     // These are glob patterns, used by process_directory_structure
     let ignore_patterns_for_peak = vec!( // Renamed to avoid confusion
         glob::Pattern::new("curly.out").unwrap(),
+        glob::Pattern::new("*.out").unwrap(),
         glob::Pattern::new(".git").unwrap(),
         glob::Pattern::new("curly.yaml").unwrap(),
         glob::Pattern::new("node_modules").unwrap(),

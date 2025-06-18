@@ -4,17 +4,10 @@ assertion_line: 184
 expression: normalized_output
 ---
 output_file_ignorance_test
-├── another.out
 ├── main.rs
 ├── some_other_file.txt
 └── sub_dir
-    ├── ignore_this.out
     └── something.txt
-
-```another.out
-another output file
-
-```
 
 ```main.rs
 fn main() { println!("hello"); }
@@ -23,11 +16,6 @@ fn main() { println!("hello"); }
 
 ```some_other_file.txt
 other text
-
-```
-
-```sub_dir/ignore_this.out
-nested output file
 
 ```
 
