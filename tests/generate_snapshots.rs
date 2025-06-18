@@ -1,4 +1,4 @@
-use curly::{Config, Generator, GenerateOperation}; // Corrected crate name
+use curly::{Config, Generator, GenerateOperation, run_and_write};
 use insta::assert_yaml_snapshot;
 use std::path::PathBuf;
 
@@ -277,4 +277,100 @@ fn language_specific_ignore_typescript_snapshot() {
             panic!("Failed to run generator for typescript_ignore_test: {:?}", e);
         }
     }
+}
+
+#[test]
+fn run_and_write_python_generates_file() {
+    let repo_path = get_test_repo_path("sample_project_1");
+    let out_path = repo_path.join("generated_python.out");
+    let config = Config {
+        path: Some(repo_path.to_string_lossy().to_string()),
+        output: Some(out_path.to_string_lossy().to_string()),
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("python".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+    let generator = Generator;
+    let (expected, _) = generator.run(&config).unwrap();
+    run_and_write(&generator, &config).unwrap();
+    let written = std::fs::read_to_string(&out_path).unwrap();
+    assert_eq!(expected, written);
+    std::fs::remove_file(out_path).unwrap();
+}
+
+#[test]
+fn run_and_write_rust_generates_file() {
+    let repo_path = get_test_repo_path("config_and_ignore_test");
+    let out_path = repo_path.join("generated_rust.out");
+    let config = Config {
+        path: Some(repo_path.to_string_lossy().to_string()),
+        output: Some(out_path.to_string_lossy().to_string()),
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("rust".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+    let generator = Generator;
+    let (expected, _) = generator.run(&config).unwrap();
+    run_and_write(&generator, &config).unwrap();
+    let written = std::fs::read_to_string(&out_path).unwrap();
+    assert_eq!(expected, written);
+    std::fs::remove_file(out_path).unwrap();
+}
+
+#[test]
+fn run_and_write_javascript_generates_file() {
+    let repo_path = get_test_repo_path("javascript_ignore_test");
+    let out_path = repo_path.join("generated_js.out");
+    let config = Config {
+        path: Some(repo_path.to_string_lossy().to_string()),
+        output: Some(out_path.to_string_lossy().to_string()),
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("javascript".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+    let generator = Generator;
+    let (expected, _) = generator.run(&config).unwrap();
+    run_and_write(&generator, &config).unwrap();
+    let written = std::fs::read_to_string(&out_path).unwrap();
+    assert_eq!(expected, written);
+    std::fs::remove_file(out_path).unwrap();
+}
+
+#[test]
+fn run_and_write_typescript_generates_file() {
+    let repo_path = get_test_repo_path("typescript_ignore_test");
+    let out_path = repo_path.join("generated_ts.out");
+    let config = Config {
+        path: Some(repo_path.to_string_lossy().to_string()),
+        output: Some(out_path.to_string_lossy().to_string()),
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("typescript".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+    let generator = Generator;
+    let (expected, _) = generator.run(&config).unwrap();
+    run_and_write(&generator, &config).unwrap();
+    let written = std::fs::read_to_string(&out_path).unwrap();
+    assert_eq!(expected, written);
+    std::fs::remove_file(out_path).unwrap();
 }
