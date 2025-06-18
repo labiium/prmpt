@@ -22,6 +22,13 @@ Curly is a Rust utility for turning an entire code repository into a prompt that
 
 The executable will be at `target/release/curly`.
 
+Or
+
+    ```bash
+    cargo install --git https://github.com/labiium/curly
+    ```
+and the `curly` command will then be available.
+
 ## Command overview
 
 Curly exposes two main subcommands. You can also invoke named configurations stored in a `curly.yaml` file.
