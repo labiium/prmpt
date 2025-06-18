@@ -15,7 +15,7 @@ Curly is a Rust utility for turning an entire code repository into a prompt that
 2. Build Curly from source:
 
     ```bash
-    git clone https://github.com/yourusername/curly.git
+    git clone https://github.com/labiium/curly.git
     cd curly
     cargo build --release
     ```
