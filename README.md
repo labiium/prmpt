@@ -14,19 +14,21 @@ Curly is a Rust utility for turning an entire code repository into a prompt that
 1. Install a [Rust toolchain](https://www.rust-lang.org/tools/install).
 2. Build Curly from source:
 
-    ```bash
-    git clone https://github.com/labiium/curly.git
-    cd curly
-    cargo build --release
-    ```
+```bash
+git clone https://github.com/labiium/curly.git
+cd curly
+cargo build --release
+```
 
 The executable will be at `target/release/curly`.
 
-Or
+Or   
 
-    ```bash
-    cargo install --git https://github.com/labiium/curly
-    ```
+```bash
+cargo install --git https://github.com/labiium/curly.git
+```
+
+
 and the `curly` command will then be available.
 
 ## Command overview
@@ -39,9 +41,9 @@ Create a prompt file from a repository.
 
 - Basic run
 
-    ```bash
-    curly generate --path my_project --language rust --output repo.out
-    ```
+```bash
+curly generate --path my_project --language rust --output repo.out
+```
 
 - Important flags
     - `--ignore <pattern>` – repeat to skip files or directories.
@@ -54,20 +56,20 @@ Read an LLM's output and write changes back into the repository.
 
 - Basic run
 
-    ```bash
-    curly inject --input llm_output.txt --path my_project
-    ```
+```bash
+curly inject --input llm_output.txt --path my_project
+```
 
 The input file should contain a path followed by a fenced code block for every change:
 
-    ```
+```md
     src/main.rs
     ```rust
     fn main() {
         println!("hello updated world");
     }
     ```
-    ```
+```
 
 ### Running with a configuration
 
@@ -95,17 +97,17 @@ curly base
 Running `curly generate` on a small project might produce something like:
 
 ```text
-sample_project_1
-├── README.md
-└── main.py
-
-```README.md
-# Sample Project 1
-```
-
-```main.py
-print("Hello, world!")
-```
+    sample_project_1
+    ├── README.md
+    └── main.py
+    
+    ```README.md
+    # Sample Project 1
+    ```
+    
+    ```main.py
+    print("Hello, world!")
+    ```
 ```
 
 This output can be fed directly into your favourite LLM. After editing, feed the modified file back to `curly inject`.
