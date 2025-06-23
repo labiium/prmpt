@@ -36,16 +36,39 @@ pub fn load_config() -> Result<HashMap<String, Config>, Box<dyn std::error::Erro
     let config_path = Path::new("curly.yaml");
     let contents = fs::read_to_string(config_path)?;
 
-    // Attempt to deserialize as a single Config first
-    if let Ok(single_config) = serde_yaml::from_str::<Config>(&contents) {
+    // Parse the YAML generically first so we can determine its structure
+    let yaml_value: serde_yaml::Value = serde_yaml::from_str(&contents)?;
+    let mapping = yaml_value.as_mapping().ok_or("curly.yaml must contain a mapping at the top level")?;
+
+    // Set of valid Config field names to distinguish between a single config and a map of configs
+    const CONFIG_FIELDS: &[&str] = &[
+        "path",
+        "ignore",
+        "output",
+        "delimiter",
+        "language",
+        "prompts",
+        "docs_comments_only",
+        "docs_ignore",
+        "use_gitignore",
+        "display_outputs",
+    ];
+
+    let all_keys_are_fields = mapping.keys().all(|k| {
+        k.as_str()
+            .map(|key| CONFIG_FIELDS.contains(&key))
+            .unwrap_or(false)
+    });
+
+    if all_keys_are_fields {
+        // Deserialize directly into a single Config
+        let single_config: Config = serde_yaml::from_value(yaml_value)?;
         let mut configs = HashMap::new();
         configs.insert(DEFAULT_CONFIG_KEY.to_string(), single_config);
-        return Ok(configs);
-    }
-
-    // If single Config deserialization fails, try as HashMap<String, Config>
-    match serde_yaml::from_str::<HashMap<String, Config>>(&contents) {
-        Ok(multiple_configs) => Ok(multiple_configs),
-        Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
+        Ok(configs)
+    } else {
+        // Treat each top level key as a named configuration
+        let multiple_configs: HashMap<String, Config> = serde_yaml::from_value(yaml_value)?;
+        Ok(multiple_configs)
     }
 }

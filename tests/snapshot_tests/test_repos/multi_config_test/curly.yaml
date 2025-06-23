@@ -1,0 +1,10 @@
+one:
+  path: '.'
+  language: rust
+  use_gitignore: false
+two:
+  path: '.'
+  language: rust
+  ignore:
+    - ignored_subconfig.txt
+  use_gitignore: true

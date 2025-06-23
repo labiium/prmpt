@@ -374,3 +374,63 @@ fn run_and_write_typescript_generates_file() {
     assert_eq!(expected, written);
     std::fs::remove_file(out_path).unwrap();
 }
+
+#[test]
+fn load_sub_configs() {
+    let repo_path = get_test_repo_path("multi_config_test");
+    let original_dir = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let configs = curly::load_config().expect("failed to load multi config");
+    assert!(configs.contains_key("one"), "missing config 'one'");
+    assert!(configs.contains_key("two"), "missing config 'two'");
+
+    std::env::set_current_dir(original_dir).unwrap();
+}
+
+#[test]
+fn sub_config_use_gitignore_snapshot() {
+    let repo_path = get_test_repo_path("multi_config_test");
+    let original_dir = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let configs = curly::load_config().expect("failed to load curly.yaml");
+    let mut config = configs.get("two").expect("config two missing").clone();
+
+    std::env::set_current_dir(&original_dir).unwrap();
+
+    config.path = Some(repo_path.to_string_lossy().to_string());
+    config.output = None;
+
+    let generator = Generator::default();
+    let (output, errors) = generator.run(&config).unwrap();
+    assert!(errors.is_empty());
+
+    let normalized = output
+        .replace(&repo_path.to_string_lossy().to_string(), "TEST_REPO_ROOT")
+        .replace("\\", "/");
+
+    insta::assert_snapshot!("sub_config_use_gitignore_snapshot", normalized);
+}
+
+#[test]
+fn sub_config_no_gitignore_includes_gitignored_file() {
+    let repo_path = get_test_repo_path("multi_config_test");
+    let original_dir = std::env::current_dir().unwrap();
+    std::env::set_current_dir(&repo_path).unwrap();
+
+    let configs = curly::load_config().expect("failed to load curly.yaml");
+    let mut config = configs.get("one").expect("config one missing").clone();
+
+    std::env::set_current_dir(&original_dir).unwrap();
+
+    config.path = Some(repo_path.to_string_lossy().to_string());
+    config.output = None;
+
+    let generator = Generator::default();
+    let (output, errors) = generator.run(&config).unwrap();
+    assert!(errors.is_empty());
+
+    // Should include the gitignored file
+    assert!(output.contains("ignored_git.rs"));
+}
