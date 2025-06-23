@@ -1,0 +1,21 @@
+---
+source: tests/generate_snapshots.rs
+expression: normalized
+---
+multi_config_test
+├── allowed.txt
+├── file1.rs
+└── ignored_git.rs
+
+```allowed.txt
+this should always be included
+
+```
+
+```file1.rs
+// included file
+fn main() {
+    println!("hello");
+}
+
+```
