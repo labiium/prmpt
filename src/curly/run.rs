@@ -267,15 +267,21 @@ fn process_directory_files(
         }
     }
 
-    // Control .gitignore usage based on config
+    // Always allow reading .gitignore files even if the directory isn't
+    // inside an actual git repository. `require_git(false)` ensures the
+    // ignore crate will parse `.gitignore` files without needing a `.git`
+    // directory present. This mimics the common expectation that providing a
+    // `.gitignore` should be enough for Curly to skip those paths.
+    walker_builder.require_git(false);
+
+    // Control .gitignore usage based on config. When `use_gitignore` is false
+    // all git related ignore sources are disabled.
     if !config.use_gitignore.unwrap_or(true) {
         walker_builder.git_ignore(false);
         walker_builder.git_global(false);
         walker_builder.git_exclude(false); // Also disable per-repository core.excludesFile
         walker_builder.parents(false); // Disable parent ignore files
-        walker_builder.require_git(false); // Don't require a .git directory for parent search
     }
-    // Otherwise, .gitignore files are respected by default (and parent search is enabled).
     
     // Canonicalize base_path for robust prefix stripping, important if `dir` could be a symlink
     // or contains `..` components.
