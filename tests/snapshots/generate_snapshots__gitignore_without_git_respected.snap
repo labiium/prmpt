@@ -1,0 +1,12 @@
+---
+source: tests/generate_snapshots.rs
+expression: normalized
+---
+gitignore_no_git_test
+├── ignored.rs
+└── included.rs
+
+```included.rs
+fn main() {}
+
+```

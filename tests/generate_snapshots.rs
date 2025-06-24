@@ -434,3 +434,56 @@ fn sub_config_no_gitignore_includes_gitignored_file() {
     // Should include the gitignored file
     assert!(output.contains("ignored_git.rs"));
 }
+
+#[test]
+fn gitignore_without_git_respected() {
+    let test_dir = get_test_repo_path("gitignore_no_git_test");
+    let config = Config {
+        path: Some(test_dir.to_string_lossy().to_string()),
+        output: None,
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("rust".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(true),
+        display_outputs: Some(false),
+    };
+
+    let generator = Generator;
+    match generator.run(&config) {
+        Ok((output, _)) => {
+            let normalized = output
+                .replace(&test_dir.to_string_lossy().to_string(), "TEST_REPO_ROOT")
+                .replace("\\", "/");
+            insta::assert_snapshot!("gitignore_without_git_respected", normalized);
+        }
+        Err(e) => panic!("Failed to run generator: {:?}", e),
+    }
+}
+
+#[test]
+fn gitignore_disabled_ignores_nothing() {
+    let test_dir = get_test_repo_path("gitignore_no_git_test");
+    let config = Config {
+        path: Some(test_dir.to_string_lossy().to_string()),
+        output: None,
+        ignore: None,
+        delimiter: Some("```".to_string()),
+        language: Some("rust".to_string()),
+        prompts: None,
+        docs_comments_only: Some(false),
+        docs_ignore: None,
+        use_gitignore: Some(false),
+        display_outputs: Some(false),
+    };
+
+    let generator = Generator;
+    match generator.run(&config) {
+        Ok((output, _)) => {
+            assert!(output.contains("ignored.rs"), "ignored file should appear when gitignore disabled");
+        }
+        Err(e) => panic!("Failed to run generator: {:?}", e),
+    }
+}
