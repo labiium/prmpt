@@ -349,33 +349,33 @@ fn process_file(
         .iter()
             .any(|pattern| pattern.matches(relative_path_str) || pattern.matches_path(file));
 
-    // If docs_comments_only is enabled and the language is Python, extract docstrings only
+    // If docs_comments_only is enabled and the language is Python, extract
+    // docstrings from Python files while still including other files.
     if let Some(true) = config.docs_comments_only {
-        if !should_ignore_docs_only
-            && config.language.as_deref().unwrap_or("").to_lowercase() == "python"
-        {
+        if config.language.as_deref().unwrap_or("").to_lowercase() == "python" {
             let extension = file
                 .extension()
                 .and_then(std::ffi::OsStr::to_str)
                 .unwrap_or("");
-            if extension != "py" {
-                return Ok(()); // Skip non-Python files
-            }
 
-            if should_ignore_docs_only {
+            if extension == "py" {
+                if should_ignore_docs_only {
+                    return Ok(());
+                }
+
+                // Process Python file to extract signatures and docstrings
+                let contents = std_fs::read_to_string(file)?; // Use std_fs
+                let signatures = extract_python_signatures(&contents);
+
+                if !signatures.trim().is_empty() {
+                    output.push_str(&format!("{}{}\n", delimiter, relative_path_str));
+                    output.push_str(&signatures);
+                    output.push_str(&format!("\n{}\n\n", delimiter));
+                }
                 return Ok(());
             }
-
-            // Process Python file to extract signatures and docstrings
-            let contents = std_fs::read_to_string(file)?; // Use std_fs
-            let signatures = extract_python_signatures(&contents);
-
-            if !signatures.trim().is_empty() {
-                output.push_str(&format!("{}{}\n", delimiter, relative_path_str));
-                output.push_str(&signatures);
-                output.push_str(&format!("\n{}\n\n", delimiter));
-            }
-            return Ok(());
+            // For non-Python files we simply fall through to the default
+            // behavior below which includes the entire file contents.
         }
     }
 
