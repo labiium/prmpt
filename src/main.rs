@@ -1,5 +1,4 @@
 use clap::{Args, Parser, Subcommand};
-use env_logger;
 use log::LevelFilter;
 
 // Import all necessary functions/types from our library
@@ -132,16 +131,16 @@ fn main() {
                 display_outputs: Some(args.display_outputs),
                 prompts: None, // Prompts are usually part of prmpt.yaml, not direct CLI flags here.
             };
-            let generator = Generator::default();
+            let generator = Generator;
             if let Err(e) = run_and_write(&generator, &config) {
-                eprintln!("Error generating prompt: {:?}", e); // Use {:?} for anyhow::Error
+                eprintln!("Error generating prompt: {e:?}"); // Use {:?} for anyhow::Error
                 std::process::exit(1);
             }
         }
         Some(Commands::Inject(args)) => {
-            let injector = Injector::default();
+            let injector = Injector;
             if let Err(e) = injector.inject(Path::new(&args.input), Path::new(&args.path)) {
-                eprintln!("Error injecting code: {:?}", e); // Use {:?} for anyhow::Error
+                eprintln!("Error injecting code: {e:?}"); // Use {:?} for anyhow::Error
                 std::process::exit(1);
             }
         }
@@ -151,19 +150,17 @@ fn main() {
             match load_config() {
                 Ok(configs) => {
                     if let Some(config) = configs.get(config_to_load) {
-                        let generator = Generator::default();
+                        let generator = Generator;
                         // Use the updated run_and_write with the loaded config
                         if let Err(e) = run_and_write(&generator, &config.clone()) {
                             eprintln!(
-                                "Error generating prompt from config '{}': {:?}",
-                                config_to_load, e
+                                "Error generating prompt from config '{config_to_load}': {e:?}"
                             );
                             std::process::exit(1);
                         }
                     } else {
                         // This should rarely happen now since load_config ensures 'base' exists
-                        let available_configs: Vec<String> =
-                            configs.keys().map(|k| k.clone()).collect();
+                        let available_configs: Vec<String> = configs.keys().cloned().collect();
                         eprintln!(
                             "Configuration '{}' not found. Available configurations: {}",
                             config_to_load,
@@ -176,7 +173,7 @@ fn main() {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to load configuration: {}", e);
+                    eprintln!("Failed to load configuration: {e}");
                     eprintln!(
                         "Note: prmpt can run without a prmpt.yaml file using default settings."
                     );

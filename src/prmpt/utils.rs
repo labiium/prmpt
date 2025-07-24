@@ -13,7 +13,7 @@ use walkdir::WalkDir;
 pub fn process_directory_structure(
     dir: &Path,
     output: &std::sync::Arc<std::sync::Mutex<String>>,
-    depth: usize,
+    _depth: usize,
     ignore_patterns: &[Pattern], // These are glob::Pattern for backward compatibility
     prefix: &str,
     base_path: &Path,
@@ -48,8 +48,7 @@ pub fn process_directory_structure(
                         continue;
                     }
 
-                    if relative_path_str.starts_with(dir_part) {
-                        let remaining_path = &relative_path_str[dir_part.len()..];
+                    if let Some(remaining_path) = relative_path_str.strip_prefix(dir_part) {
                         if !remaining_path.contains('/') {
                             if let Ok(file_glob) = Pattern::new(file_pattern) {
                                 if file_glob.matches(remaining_path) {
@@ -100,7 +99,7 @@ pub fn process_directory_structure(
             process_directory_structure(
                 path,
                 output,
-                depth + 1,
+                _depth + 1,
                 ignore_patterns,
                 &new_prefix,
                 base_path,

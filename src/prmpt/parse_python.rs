@@ -195,7 +195,7 @@ fn indent_docstring(docstring: &str, indent: &str, quote_type: &str) -> String {
     // Indent each line with the desired indentation
     let indented_docstring = dedented_docstring
         .lines()
-        .map(|line| format!("{}{}", indent, line))
+        .map(|line| format!("{indent}{line}"))
         .collect::<Vec<String>>()
         .join("\n");
 
@@ -214,10 +214,7 @@ fn indent_docstring(docstring: &str, indent: &str, quote_type: &str) -> String {
             )
         } else {
             // For multi-line docstrings, place quotes on separate lines
-            format!(
-                "{}{}\n{}\n{}{}",
-                indent, quote_type, indented_docstring, indent, quote_type
-            )
+            format!("{indent}{quote_type}\n{indented_docstring}\n{indent}{quote_type}")
         }
     }
 }
@@ -227,7 +224,7 @@ fn indent_docstring(docstring: &str, indent: &str, quote_type: &str) -> String {
 fn dedent(s: &str) -> String {
     let lines: Vec<&str> = s.lines().collect();
     // remove first index if it is empty or whitespace-only
-    let lines = if lines.first().map_or(true, |line| line.trim().is_empty()) {
+    let lines = if lines.first().is_none_or(|line| line.trim().is_empty()) {
         &lines[1..]
     } else {
         &lines

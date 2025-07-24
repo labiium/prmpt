@@ -1,6 +1,6 @@
 use crate::Config;
-use std::path::Path;
-use anyhow::Error; // Using anyhow::Error
+use anyhow::Error;
+use std::path::Path; // Using anyhow::Error
 
 /// Trait for the 'generate' operation.
 pub trait GenerateOperation {

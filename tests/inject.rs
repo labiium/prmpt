@@ -12,7 +12,7 @@ fn inject_plain_path() {
     let input = repo.join("input.in");
     fs::write(&input, "src/lib.rs\n```rust\nfn new_fn() {}\n```\n").unwrap();
 
-    let injector = Injector::default();
+    let injector = Injector;
     injector.inject(&input, repo).unwrap();
 
     let contents = fs::read_to_string(repo.join("src/lib.rs")).unwrap();
@@ -29,7 +29,7 @@ fn inject_backticked_path() {
     let input = repo.join("input.in");
     fs::write(&input, "### `src/lib.rs`\n```rust\nfn added() {}\n```\n").unwrap();
 
-    let injector = Injector::default();
+    let injector = Injector;
     injector.inject(&input, repo).unwrap();
 
     let contents = fs::read_to_string(repo.join("src/lib.rs")).unwrap();
@@ -46,7 +46,7 @@ fn inject_fence_with_path() {
     let input = repo.join("input.in");
     fs::write(&input, "```src/lib.rs\nfn replaced() {}\n```\n").unwrap();
 
-    let injector = Injector::default();
+    let injector = Injector;
     injector.inject(&input, repo).unwrap();
 
     let contents = fs::read_to_string(repo.join("src/lib.rs")).unwrap();
@@ -63,7 +63,7 @@ fn inject_fence_with_language_and_path() {
     let input = repo.join("input.in");
     fs::write(&input, "```rust src/lib.rs\nfn update() {}\n```\n").unwrap();
 
-    let injector = Injector::default();
+    let injector = Injector;
     injector.inject(&input, repo).unwrap();
 
     let contents = fs::read_to_string(repo.join("src/lib.rs")).unwrap();

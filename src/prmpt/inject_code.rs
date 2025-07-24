@@ -116,7 +116,7 @@ impl InjectionParser {
                     content: self.current_code_block.trim_end().to_string(),
                 });
             } else {
-                warn!("Empty code block detected for path: {:?}", target_path);
+                warn!("Empty code block detected for path: {target_path:?}");
             }
         } else {
             warn!("Code block closed without a file path being set!");
@@ -137,15 +137,12 @@ impl InjectOperation for Injector {
                 repo_path.display()
             )
         })?;
-        info!("Canonicalized base repository path: {:?}", base_path_canon);
+        info!("Canonicalized base repository path: {base_path_canon:?}");
 
         let contents = fs::read_to_string(input_path)
             .with_context(|| format!("Failed to read input file: '{}'", input_path.display()))?;
 
-        info!(
-            "Starting to process the input file for injection: {:?}",
-            input_path
-        );
+        info!("Starting to process the input file for injection: {input_path:?}");
 
         // Parse the input file using the new parser
         let parser = InjectionParser::new();
@@ -173,10 +170,7 @@ impl Injector {
         let target_filename = match full_target_path.file_name() {
             Some(name) => name.to_os_string(),
             None => {
-                error!(
-                    "Could not extract filename from path: {:?}",
-                    full_target_path
-                );
+                error!("Could not extract filename from path: {full_target_path:?}");
                 return Ok(()); // Skip this file and continue
             }
         };
@@ -190,16 +184,10 @@ impl Injector {
             base_path_canon.clone()
         } else {
             fs::create_dir_all(parent_dir_for_file).with_context(|| {
-                format!(
-                    "Failed to create parent directory: {:?}",
-                    parent_dir_for_file
-                )
+                format!("Failed to create parent directory: {parent_dir_for_file:?}")
             })?;
             fs::canonicalize(parent_dir_for_file).with_context(|| {
-                format!(
-                    "Failed to canonicalize parent directory: {:?}",
-                    parent_dir_for_file
-                )
+                format!("Failed to canonicalize parent directory: {parent_dir_for_file:?}")
             })?
         };
 
@@ -215,10 +203,7 @@ impl Injector {
             return Ok(()); // Skip this file and continue to the next
         }
 
-        info!(
-            "Final canonical file path for injection: {:?}",
-            final_file_path_canon
-        );
+        info!("Final canonical file path for injection: {final_file_path_canon:?}");
 
         // Generate a secure temporary filename
         let mut rng = ThreadRng::default();
@@ -234,30 +219,23 @@ impl Injector {
         );
         let temp_file_path = canonical_parent_dir.join(temp_filename);
 
-        info!("Writing to temporary file: {:?}", temp_file_path);
+        info!("Writing to temporary file: {temp_file_path:?}");
 
         // Write to temporary file and atomically rename
         fs::write(&temp_file_path, &block.content)
-            .with_context(|| format!("Failed to write to temporary file: {:?}", temp_file_path))?;
+            .with_context(|| format!("Failed to write to temporary file: {temp_file_path:?}"))?;
 
-        info!(
-            "Successfully wrote to temporary file. Renaming to: {:?}",
-            final_file_path_canon
-        );
+        info!("Successfully wrote to temporary file. Renaming to: {final_file_path_canon:?}");
 
         fs::rename(&temp_file_path, &final_file_path_canon).with_context(|| {
             // Clean up temporary file on failure
             let _ = fs::remove_file(&temp_file_path);
             format!(
-                "Failed to rename temporary file {:?} to {:?}",
-                temp_file_path, final_file_path_canon
+                "Failed to rename temporary file {temp_file_path:?} to {final_file_path_canon:?}"
             )
         })?;
 
-        info!(
-            "Successfully injected code into {:?}",
-            final_file_path_canon
-        );
+        info!("Successfully injected code into {final_file_path_canon:?}");
         Ok(())
     }
 }

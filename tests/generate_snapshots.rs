@@ -27,7 +27,7 @@ fn test_sample_project_1_default_snapshot() {
         prompts: None,
     };
 
-    let generator = Generator::default();
+    let generator = Generator;
     let result = generator.run(&config);
 
     assert!(result.is_ok(), "Generator run failed: {:?}", result.err());
@@ -39,8 +39,7 @@ fn test_sample_project_1_default_snapshot() {
     // For now, let's ensure it's empty for this controlled test case.
     assert!(
         errors.is_empty(),
-        "Generator run reported errors: {:?}",
-        errors
+        "Generator run reported errors: {errors:?}"
     );
 
     // Snapshot the main output string
@@ -66,7 +65,7 @@ fn test_sample_project_1_docs_only_snapshot() {
         prompts: None,
     };
 
-    let generator = Generator::default();
+    let generator = Generator;
     let result = generator.run(&config);
 
     assert!(
@@ -77,8 +76,7 @@ fn test_sample_project_1_docs_only_snapshot() {
     let (output_string, errors) = result.unwrap();
     assert!(
         errors.is_empty(),
-        "Generator run for docs_only reported errors: {:?}",
-        errors
+        "Generator run for docs_only reported errors: {errors:?}"
     );
 
     // Snapshot for the docs_comments_only output
@@ -117,7 +115,7 @@ fn test_config_and_ignore_snapshot() {
     // Let's clear it to ensure we are testing the string output, not file writing.
     effective_config.output = None;
 
-    let generator = Generator::default();
+    let generator = Generator;
     // Pass a reference to the config
     let result = generator.run(&effective_config);
 
@@ -126,8 +124,7 @@ fn test_config_and_ignore_snapshot() {
 
     assert!(
         errors.is_empty(),
-        "Generator run reported errors: {:?}",
-        errors
+        "Generator run reported errors: {errors:?}"
     );
 
     // Snapshot name will be `generate_snapshots__test_config_and_ignore_snapshot.snap`
@@ -159,7 +156,7 @@ fn test_config_and_ignore_false_snapshot() {
     effective_config.path = Some(project_path_str.clone());
     effective_config.output = None; // For snapshot string testing
 
-    let generator = Generator::default();
+    let generator = Generator;
     let result = generator.run(&effective_config);
 
     assert!(result.is_ok(), "Generator run failed: {:?}", result.err());
@@ -167,8 +164,7 @@ fn test_config_and_ignore_false_snapshot() {
 
     assert!(
         errors.is_empty(),
-        "Generator run reported errors: {:?}",
-        errors
+        "Generator run reported errors: {errors:?}"
     );
 
     // Snapshot name will be `generate_snapshots__test_config_and_ignore_false_snapshot.snap`
@@ -208,8 +204,7 @@ fn output_file_ignorance_snapshot() {
         }
         Err(e) => {
             panic!(
-                "Failed to run generator for output_file_ignorance_test: {:?}",
-                e
+                "Failed to run generator for output_file_ignorance_test: {e:?}"
             );
         }
     }
@@ -240,7 +235,7 @@ fn language_specific_ignore_snapshot() {
             insta::assert_snapshot!("language_specific_ignore_snapshot", normalized_output);
         }
         Err(e) => {
-            panic!("Failed to run generator for python_ignore_test: {:?}", e);
+            panic!("Failed to run generator for python_ignore_test: {e:?}");
         }
     }
 }
@@ -274,8 +269,7 @@ fn language_specific_ignore_javascript_snapshot() {
         }
         Err(e) => {
             panic!(
-                "Failed to run generator for javascript_ignore_test: {:?}",
-                e
+                "Failed to run generator for javascript_ignore_test: {e:?}"
             );
         }
     }
@@ -310,8 +304,7 @@ fn language_specific_ignore_typescript_snapshot() {
         }
         Err(e) => {
             panic!(
-                "Failed to run generator for typescript_ignore_test: {:?}",
-                e
+                "Failed to run generator for typescript_ignore_test: {e:?}"
             );
         }
     }
@@ -440,7 +433,7 @@ fn sub_config_use_gitignore_snapshot() {
     config.path = Some(repo_path.to_string_lossy().to_string());
     config.output = None;
 
-    let generator = Generator::default();
+    let generator = Generator;
     let (output, errors) = generator.run(&config).unwrap();
     assert!(errors.is_empty());
 
@@ -465,7 +458,7 @@ fn sub_config_no_gitignore_includes_gitignored_file() {
     config.path = Some(repo_path.to_string_lossy().to_string());
     config.output = None;
 
-    let generator = Generator::default();
+    let generator = Generator;
     let (output, errors) = generator.run(&config).unwrap();
     assert!(errors.is_empty());
 
@@ -497,7 +490,7 @@ fn gitignore_without_git_respected() {
                 .replace("\\", "/");
             insta::assert_snapshot!("gitignore_without_git_respected", normalized);
         }
-        Err(e) => panic!("Failed to run generator: {:?}", e),
+        Err(e) => panic!("Failed to run generator: {e:?}"),
     }
 }
 
@@ -525,6 +518,6 @@ fn gitignore_disabled_ignores_nothing() {
                 "ignored file should appear when gitignore disabled"
             );
         }
-        Err(e) => panic!("Failed to run generator: {:?}", e),
+        Err(e) => panic!("Failed to run generator: {e:?}"),
     }
 }

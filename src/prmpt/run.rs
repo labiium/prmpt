@@ -76,9 +76,9 @@ impl GenerateOperation for Generator {
         if let Some(prompts) = &config.prompts {
             let mut output_guard = output_arc.lock().unwrap();
             for prompt in prompts {
-                output_guard.push_str(&format!("{}\n", prompt));
+                output_guard.push_str(&format!("{prompt}\n"));
             }
-            output_guard.push_str("\n");
+            output_guard.push('\n');
         }
 
         let current_dir_name = if path_str == "." {
@@ -105,7 +105,7 @@ impl GenerateOperation for Generator {
 
         {
             let mut output_guard = output_arc.lock().unwrap();
-            output_guard.push_str(&format!("{}\n", current_dir_name));
+            output_guard.push_str(&format!("{current_dir_name}\n"));
         }
         process_directory_structure(
             &canonical_repo_path,
@@ -117,7 +117,7 @@ impl GenerateOperation for Generator {
         );
         {
             let mut output_guard = output_arc.lock().unwrap();
-            output_guard.push_str("\n");
+            output_guard.push('\n');
         }
 
         process_directory_files(
@@ -135,8 +135,7 @@ impl GenerateOperation for Generator {
         if !error_count_guard.is_empty() {
             for (dir, count) in error_count_guard.iter() {
                 errors.push(format!(
-                    "Directory '{}' had {} file(s) that could not be processed\n",
-                    dir, count
+                    "Directory '{dir}' had {count} file(s) that could not be processed\n"
                 ));
             }
         }
@@ -156,7 +155,7 @@ pub fn run_and_write(generator: &impl GenerateOperation, config: &Config) -> Res
         Ok((output_final, errors)) => {
             if let Err(e) = std_fs::write(&output_file_name, &*output_final) {
                 return Err(
-                    Error::new(e).context(format!("Unable to write to file {}", output_file_name))
+                    Error::new(e).context(format!("Unable to write to file {output_file_name}"))
                 );
             }
             if !errors.is_empty() {
@@ -169,7 +168,7 @@ pub fn run_and_write(generator: &impl GenerateOperation, config: &Config) -> Res
         }
         Err(e) => {
             // Log the critical error from the generator itself
-            error!("Generator operation failed: {:?}", e);
+            error!("Generator operation failed: {e:?}");
             Err(e.context("Generator operation failed in run_and_write"))
         }
     }
@@ -261,33 +260,27 @@ fn process_directory_files(
 
     // Add patterns to ensure specific files/dirs are ignored.
     // Ensure the output file itself is ignored
-    if let Err(e) = override_builder.add(&format!("!{}", output_file_name)) {
-        warn!(
-            "Failed to add output file ignore pattern '{}': {}",
-            output_file_name, e
-        );
+    if let Err(e) = override_builder.add(&format!("!{output_file_name}")) {
+        warn!("Failed to add output file ignore pattern '{output_file_name}': {e}");
     }
     if let Err(e) = override_builder.add("!*.out") {
-        warn!("Failed to add generic .out ignore pattern: {}", e);
+        warn!("Failed to add generic .out ignore pattern: {e}");
     }
     if let Err(e) = override_builder.add("!.git") {
-        warn!("Failed to add .git ignore pattern: {}", e);
+        warn!("Failed to add .git ignore pattern: {e}");
     }
     if let Err(e) = override_builder.add("!.gitignore") {
-        warn!("Failed to add .gitignore ignore pattern: {}", e);
+        warn!("Failed to add .gitignore ignore pattern: {e}");
     }
     if let Err(e) = override_builder.add("!prmpt.yaml") {
-        warn!("Failed to add prmpt.yaml ignore pattern: {}", e);
+        warn!("Failed to add prmpt.yaml ignore pattern: {e}");
     }
 
     // Add patterns from config.ignore
     if let Some(ignore_list) = &config.ignore {
         for pattern_str in ignore_list {
-            if let Err(e) = override_builder.add(&format!("!{}", pattern_str)) {
-                warn!(
-                    "Failed to add custom ignore pattern '{}': {}",
-                    pattern_str, e
-                );
+            if let Err(e) = override_builder.add(&format!("!{pattern_str}")) {
+                warn!("Failed to add custom ignore pattern '{pattern_str}': {e}");
             }
         }
     }
@@ -296,11 +289,8 @@ fn process_directory_files(
     if let Some(language) = config.language.as_deref() {
         let default_patterns = get_default_ignore_patterns_for_ignore(language);
         for pattern_str in default_patterns {
-            if let Err(e) = override_builder.add(&format!("!{}", pattern_str)) {
-                warn!(
-                    "Failed to add default ignore pattern '{}': {}",
-                    pattern_str, e
-                );
+            if let Err(e) = override_builder.add(&format!("!{pattern_str}")) {
+                warn!("Failed to add default ignore pattern '{pattern_str}': {e}");
             }
         }
     }
@@ -310,7 +300,7 @@ fn process_directory_files(
             walker_builder.overrides(ov);
         }
         Err(e) => {
-            warn!("Failed to build overrides: {}", e);
+            warn!("Failed to build overrides: {e}");
         }
     }
 
@@ -431,9 +421,9 @@ fn process_file(
             let signatures = extract_python_signatures(&contents);
 
             if !signatures.trim().is_empty() {
-                output.push_str(&format!("{}{}\n", delimiter, relative_path_str));
+                output.push_str(&format!("{delimiter}{relative_path_str}\n"));
                 output.push_str(&signatures);
-                output.push_str(&format!("\n{}\n\n", delimiter));
+                output.push_str(&format!("\n{delimiter}\n\n"));
             }
             return Ok(());
         }
@@ -443,7 +433,7 @@ fn process_file(
     if let Some(ext) = file.extension().and_then(std::ffi::OsStr::to_str) {
         if ext == "ipynb" {
             if let Some(notebook_json) = maybe_read_notebook(&file.to_string_lossy()) {
-                output.push_str(&format!("{}{}\n", delimiter, relative_path_str));
+                output.push_str(&format!("{delimiter}{relative_path_str}\n"));
 
                 // Attempt to read cells from the notebook
                 if let Some(cells) = notebook_json.get("cells").and_then(|c| c.as_array()) {
@@ -454,20 +444,20 @@ fn process_file(
                                 "code" => {
                                     if let Some(src) = cell.get("source").and_then(|s| s.as_array())
                                     {
-                                        output.push_str(&format!("// Cell #{} (code)\n", i));
+                                        output.push_str(&format!("// Cell #{i} (code)\n"));
                                         for line_val in src {
                                             if let Some(line_str) = line_val.as_str() {
                                                 output.push_str(line_str);
                                             }
                                         }
-                                        output.push_str("\n");
+                                        output.push('\n');
                                     }
                                     // If display_outputs is enabled, print outputs
                                     if config.display_outputs.unwrap_or(false) {
                                         if let Some(outputs) =
                                             cell.get("outputs").and_then(|o| o.as_array())
                                         {
-                                            output.push_str(&format!("// Cell #{} (outputs)\n", i));
+                                            output.push_str(&format!("// Cell #{i} (outputs)\n"));
                                             for output_obj in outputs {
                                                 // Attempt to extract common output types
                                                 if let Some(text) = output_obj
@@ -479,7 +469,7 @@ fn process_file(
                                                             output.push_str(line_str);
                                                         }
                                                     }
-                                                    output.push_str("\n");
+                                                    output.push('\n');
                                                 } else if let Some(data) = output_obj
                                                     .get("data")
                                                     .and_then(|d| d.as_object())
@@ -497,12 +487,12 @@ fn process_file(
                                                                     output.push_str(line_str);
                                                                 }
                                                             }
-                                                            output.push_str("\n");
+                                                            output.push('\n');
                                                         } else if let Some(text_str) =
                                                             text_plain.as_str()
                                                         {
                                                             output.push_str(text_str);
-                                                            output.push_str("\n");
+                                                            output.push('\n');
                                                         }
                                                     }
                                                 }
@@ -513,13 +503,13 @@ fn process_file(
                                 "markdown" => {
                                     if let Some(src) = cell.get("source").and_then(|s| s.as_array())
                                     {
-                                        output.push_str(&format!("// Cell #{} (markdown)\n", i));
+                                        output.push_str(&format!("// Cell #{i} (markdown)\n"));
                                         for line_val in src {
                                             if let Some(line_str) = line_val.as_str() {
                                                 output.push_str(line_str);
                                             }
                                         }
-                                        output.push_str("\n");
+                                        output.push('\n');
                                     }
                                 }
                                 _ => {}
@@ -527,23 +517,23 @@ fn process_file(
                         }
                     }
                 }
-                output.push_str(&format!("\n{}\n\n", delimiter));
+                output.push_str(&format!("\n{delimiter}\n\n"));
             }
             return Ok(());
         }
     }
 
     // Default case: read the file and include its entire contents.
-    output.push_str(&format!("{}{}\n", delimiter, relative_path_str));
+    output.push_str(&format!("{delimiter}{relative_path_str}\n"));
     match std_fs::read_to_string(file) {
         // Use std_fs
         Ok(contents) => output.push_str(&contents),
         Err(e) => {
-            output.push_str(&format!("[Error reading file: {}]", e)); // Include error message
+            output.push_str(&format!("[Error reading file: {e}]")); // Include error message
             return Err(e);
         }
     }
-    output.push_str(&format!("\n{}\n\n", delimiter));
+    output.push_str(&format!("\n{delimiter}\n\n"));
     Ok(())
 }
 
