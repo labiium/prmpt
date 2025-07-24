@@ -12,9 +12,9 @@ use tree_sitter_python;
 /// This is used in "docs-only" modes, or to produce more descriptive prompts.
 pub fn extract_python_signatures(contents: &str) -> String {
     let mut parser = Parser::new();
-    let language = tree_sitter_python::language();
+    let language = tree_sitter_python::LANGUAGE.into();
     parser
-        .set_language(language)
+        .set_language(&language)
         .expect("Error loading Python grammar");
 
     let tree = parser.parse(contents, None).unwrap();

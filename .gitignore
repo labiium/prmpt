@@ -2,3 +2,6 @@ target
 test
 test_dir
 *.out
+*.snap
+*.js
+tests

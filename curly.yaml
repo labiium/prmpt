@@ -1,12 +1,12 @@
 base:
   path: .
   ignore:
-    - '*.tmp'
-    - 'temp'
+    - "*.tmp"
+    - "temp"
     - test_dir
     - test
   # output: 'curly.out'
-  delimiter: '```'
+  delimiter: "```"
   language: rust
   use_gitignore: true
   # prompts:
@@ -14,9 +14,9 @@ base:
   #   - 'Follow the relative file path with the code, ensuring there is no additional text in between.'
   #   - 'Think logically, breaking down the problem step by step within the comments of the code.'
 advanced:
-  path: 'src'
+  path: "src"
   ignore:
-    - '*.bak'
-  output: 'advanced_out'
+    - "*.bak"
+  output: "advanced.out"
   prompts:
-    - 'Use advanced terminology.'
+    - "Use advanced terminology."

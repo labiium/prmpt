@@ -7,25 +7,25 @@ use log::{debug, error, warn};
 use std::{
     collections::HashMap,
     // fs, // Removed unused import (std_fs is used)
-    path::{Path, PathBuf}, 
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 // use walkdir::WalkDir; // Removed
+use ignore::overrides::OverrideBuilder;
 use ignore::WalkBuilder; // Added
-use std::fs as std_fs; // Used for fs::canonicalize and fs::read_to_string
-use ignore::overrides::OverrideBuilder; // Added this import
+use std::fs as std_fs; // Used for fs::canonicalize and fs::read_to_string // Added this import
 
 use super::config::Config;
 use super::parse_python::{extract_python_signatures, maybe_read_notebook};
 // Removed get_default_ignore_patterns, get_gitignore_patterns, should_ignore from utils import
 // process_directory_structure is still used.
-use super::utils::{process_directory_structure}; 
+use super::utils::process_directory_structure;
 // use glob::Pattern; // Removed as main ignore logic uses `ignore` crate now. Still used by process_directory_structure internally.
 use crate::curly::traits::GenerateOperation; // Import the trait
 use anyhow::{Context, Error}; // For the Result type & context
 
 /// Struct for implementing the GenerateOperation trait.
-#[derive(Default)] 
+#[derive(Default)]
 pub struct Generator;
 
 impl GenerateOperation for Generator {
@@ -36,8 +36,12 @@ impl GenerateOperation for Generator {
         let repo_path = Path::new(path_str);
 
         // Canonicalize repo_path for robust path handling
-        let canonical_repo_path = std_fs::canonicalize(repo_path)
-            .with_context(|| format!("Failed to canonicalize repository path: '{}'", repo_path.display()))?;
+        let canonical_repo_path = std_fs::canonicalize(repo_path).with_context(|| {
+            format!(
+                "Failed to canonicalize repository path: '{}'",
+                repo_path.display()
+            )
+        })?;
 
         let output_file_name = config.output.as_deref().unwrap_or("curly.out");
         let delimiter = config.delimiter.as_deref().unwrap_or("```");
@@ -81,38 +85,52 @@ impl GenerateOperation for Generator {
             std::env::current_dir()
                 .context("Failed to get current directory")?
                 .file_name()
-                .ok_or_else(|| Error::msg("Failed to get current directory name (file_name is None)"))?
+                .ok_or_else(|| {
+                    Error::msg("Failed to get current directory name (file_name is None)")
+                })?
                 .to_string_lossy()
                 .into_owned()
         } else {
             canonical_repo_path // Use the canonicalized path here
                 .file_name()
-                .ok_or_else(|| Error::msg(format!("Failed to get file name from repo_path: {}", canonical_repo_path.display())))?
+                .ok_or_else(|| {
+                    Error::msg(format!(
+                        "Failed to get file name from repo_path: {}",
+                        canonical_repo_path.display()
+                    ))
+                })?
                 .to_string_lossy()
                 .into_owned()
         };
-        
+
         {
             let mut output_guard = output_arc.lock().unwrap();
             output_guard.push_str(&format!("{}\n", current_dir_name));
         }
-        process_directory_structure(&canonical_repo_path, &output_arc, 0, &ignore_patterns_for_structure, "", &canonical_repo_path);
+        process_directory_structure(
+            &canonical_repo_path,
+            &output_arc,
+            0,
+            &ignore_patterns_for_structure,
+            "",
+            &canonical_repo_path,
+        );
         {
             let mut output_guard = output_arc.lock().unwrap();
             output_guard.push_str("\n");
         }
 
         process_directory_files(
-            &canonical_repo_path, 
+            &canonical_repo_path,
             &output_arc,
-            &canonical_repo_path, 
+            &canonical_repo_path,
             delimiter,
             &error_count_arc,
-            config, 
+            config,
             output_file_name,
         );
 
-        let mut errors = vec!();
+        let mut errors = vec![];
         let error_count_guard = error_count_arc.lock().unwrap();
         if !error_count_guard.is_empty() {
             for (dir, count) in error_count_guard.iter() {
@@ -137,7 +155,9 @@ pub fn run_and_write(generator: &impl GenerateOperation, config: &Config) -> Res
     match generator.run(config) {
         Ok((output_final, errors)) => {
             if let Err(e) = std_fs::write(&output_file_name, &*output_final) {
-                return Err(Error::new(e).context(format!("Unable to write to file {}", output_file_name)));
+                return Err(
+                    Error::new(e).context(format!("Unable to write to file {}", output_file_name))
+                );
             }
             if !errors.is_empty() {
                 // Log non-critical errors from the run process
@@ -160,20 +180,46 @@ pub fn run_and_write(generator: &impl GenerateOperation, config: &Config) -> Res
 fn get_default_ignore_patterns_for_ignore(language: &str) -> Vec<String> {
     match language.to_lowercase().as_str() {
         "python" => vec![
-            "__pycache__/".to_string(), "*.pyc".to_string(), "*.pyo".to_string(), "*.pyd".to_string(),
-            ".Python".to_string(), "build/".to_string(), "develop-eggs/".to_string(), "dist/".to_string(),
-            "downloads/".to_string(), "eggs/".to_string(), ".eggs/".to_string(), "lib/".to_string(),
-            "lib64/".to_string(), "parts/".to_string(), "sdist/".to_string(), "var/".to_string(),
-            "wheels/".to_string(), "share/python-wheels/".to_string(), "*.egg-info/".to_string(),
-            ".installed.cfg".to_string(), "*.egg".to_string(), "MANIFEST".to_string(),
-            ".env".to_string(), ".venv".to_string(), "env/".to_string(), "venv/".to_string(),
-            "ENV/".to_string(), "VENV/".to_string(), ".pytest_cache/".to_string(),
-            ".mypy_cache/".to_string(), ".dmypy.json".to_string(), "dmypy.json".to_string(),
-            ".coverage".to_string(), "htmlcov/".to_string(), "instance/".to_string(),
+            "__pycache__/".to_string(),
+            "*.pyc".to_string(),
+            "*.pyo".to_string(),
+            "*.pyd".to_string(),
+            ".Python".to_string(),
+            "build/".to_string(),
+            "develop-eggs/".to_string(),
+            "dist/".to_string(),
+            "downloads/".to_string(),
+            "eggs/".to_string(),
+            ".eggs/".to_string(),
+            "lib/".to_string(),
+            "lib64/".to_string(),
+            "parts/".to_string(),
+            "sdist/".to_string(),
+            "var/".to_string(),
+            "wheels/".to_string(),
+            "share/python-wheels/".to_string(),
+            "*.egg-info/".to_string(),
+            ".installed.cfg".to_string(),
+            "*.egg".to_string(),
+            "MANIFEST".to_string(),
+            ".env".to_string(),
+            ".venv".to_string(),
+            "env/".to_string(),
+            "venv/".to_string(),
+            "ENV/".to_string(),
+            "VENV/".to_string(),
+            ".pytest_cache/".to_string(),
+            ".mypy_cache/".to_string(),
+            ".dmypy.json".to_string(),
+            "dmypy.json".to_string(),
+            ".coverage".to_string(),
+            "htmlcov/".to_string(),
+            "instance/".to_string(),
             ".webassets-cache".to_string(),
             "*.out".to_string(),
         ],
-        "javascript" => vec![
+        "javascript" | "typescript" => vec![
+            // Deduplicated JS/TS patterns
             "node_modules/".to_string(),
             "npm-debug.log*".to_string(),
             "yarn-debug.log*".to_string(),
@@ -185,19 +231,11 @@ fn get_default_ignore_patterns_for_ignore(language: &str) -> Vec<String> {
             ".DS_Store".to_string(),
             "*.out".to_string(),
         ],
-        "typescript" => vec![
-            "node_modules/".to_string(),
-            "npm-debug.log*".to_string(),
-            "yarn-debug.log*".to_string(),
-            "yarn-error.log*".to_string(),
-            "dist/".to_string(),
-            "build/".to_string(),
-            "out/".to_string(),
-            ".next/".to_string(),
-            ".DS_Store".to_string(),
+        "rust" => vec![
+            "target".to_string(),
+            "Cargo.lock".to_string(),
             "*.out".to_string(),
         ],
-        "rust" => vec!["target".to_string(), "Cargo.lock".to_string(), "*.out".to_string()],
         _ => Vec::new(),
     }
 }
@@ -224,7 +262,10 @@ fn process_directory_files(
     // Add patterns to ensure specific files/dirs are ignored.
     // Ensure the output file itself is ignored
     if let Err(e) = override_builder.add(&format!("!{}", output_file_name)) {
-        warn!("Failed to add output file ignore pattern '{}': {}", output_file_name, e);
+        warn!(
+            "Failed to add output file ignore pattern '{}': {}",
+            output_file_name, e
+        );
     }
     if let Err(e) = override_builder.add("!*.out") {
         warn!("Failed to add generic .out ignore pattern: {}", e);
@@ -243,7 +284,10 @@ fn process_directory_files(
     if let Some(ignore_list) = &config.ignore {
         for pattern_str in ignore_list {
             if let Err(e) = override_builder.add(&format!("!{}", pattern_str)) {
-                warn!("Failed to add custom ignore pattern '{}': {}", pattern_str, e);
+                warn!(
+                    "Failed to add custom ignore pattern '{}': {}",
+                    pattern_str, e
+                );
             }
         }
     }
@@ -253,7 +297,10 @@ fn process_directory_files(
         let default_patterns = get_default_ignore_patterns_for_ignore(language);
         for pattern_str in default_patterns {
             if let Err(e) = override_builder.add(&format!("!{}", pattern_str)) {
-                warn!("Failed to add default ignore pattern '{}': {}", pattern_str, e);
+                warn!(
+                    "Failed to add default ignore pattern '{}': {}",
+                    pattern_str, e
+                );
             }
         }
     }
@@ -282,13 +329,17 @@ fn process_directory_files(
         walker_builder.git_exclude(false); // Also disable per-repository core.excludesFile
         walker_builder.parents(false); // Disable parent ignore files
     }
-    
+
     // Canonicalize base_path for robust prefix stripping, important if `dir` could be a symlink
     // or contains `..` components.
     let canonical_base_path = match std_fs::canonicalize(base_path) {
         Ok(p) => p,
         Err(e) => {
-            error!("Failed to canonicalize base_path {}: {}. Using original.", base_path.display(), e);
+            error!(
+                "Failed to canonicalize base_path {}: {}. Using original.",
+                base_path.display(),
+                e
+            );
             PathBuf::from(base_path) // Fallback to original base_path
         }
     };
@@ -301,8 +352,18 @@ fn process_directory_files(
         let path = entry.path();
         if path.is_file() {
             let mut local_output = String::new();
-            if let Err(e) = process_file(path, &mut local_output, &canonical_base_path, delimiter, config) {
-                let dir_key = path.parent().unwrap_or_else(|| Path::new("")).to_string_lossy().to_string();
+            if let Err(e) = process_file(
+                path,
+                &mut local_output,
+                &canonical_base_path,
+                delimiter,
+                config,
+            ) {
+                let dir_key = path
+                    .parent()
+                    .unwrap_or_else(|| Path::new(""))
+                    .to_string_lossy()
+                    .to_string();
                 let mut error_count_guard = error_count.lock().unwrap();
                 *error_count_guard.entry(dir_key).or_insert(0) += 1;
                 debug!("Failed to process file {}: {}", path.display(), e);
@@ -334,7 +395,6 @@ fn process_file(
     };
     let relative_path_str = &relative_path_display;
 
-
     // If the user wants to ignore certain patterns for docstrings (uses glob::Pattern)
     let docs_ignore_patterns = if let Some(docs_ignore_list) = &config.docs_ignore {
         docs_ignore_list
@@ -347,7 +407,7 @@ fn process_file(
 
     let should_ignore_docs_only = docs_ignore_patterns
         .iter()
-            .any(|pattern| pattern.matches(relative_path_str) || pattern.matches_path(file));
+        .any(|pattern| pattern.matches(relative_path_str) || pattern.matches_path(file));
 
     // If docs_comments_only is enabled and the language is Python, extract docstrings only
     if let Some(true) = config.docs_comments_only {
@@ -475,7 +535,8 @@ fn process_file(
 
     // Default case: read the file and include its entire contents.
     output.push_str(&format!("{}{}\n", delimiter, relative_path_str));
-    match std_fs::read_to_string(file) { // Use std_fs
+    match std_fs::read_to_string(file) {
+        // Use std_fs
         Ok(contents) => output.push_str(&contents),
         Err(e) => {
             output.push_str(&format!("[Error reading file: {}]", e)); // Include error message
@@ -486,13 +547,13 @@ fn process_file(
     Ok(())
 }
 
-
 // A function which returns the directory structurre of a given path
 pub fn directory_peak(dir_path: &str) -> String {
     let path = Path::new(dir_path);
     let output = Arc::new(Mutex::new(String::new()));
     // These are glob patterns, used by process_directory_structure
-    let ignore_patterns_for_peak = vec!( // Renamed to avoid confusion
+    let ignore_patterns_for_peak = vec![
+        // Renamed to avoid confusion
         glob::Pattern::new("curly.out").unwrap(),
         glob::Pattern::new("*.out").unwrap(),
         glob::Pattern::new(".git").unwrap(),
@@ -502,9 +563,9 @@ pub fn directory_peak(dir_path: &str) -> String {
         glob::Pattern::new("dist").unwrap(),
         glob::Pattern::new("build").unwrap(),
         glob::Pattern::new("venv").unwrap(),
-        glob::Pattern::new("env").unwrap()
-    );
-    
+        glob::Pattern::new("env").unwrap(),
+    ];
+
     process_directory_structure(path, &output, 0, &ignore_patterns_for_peak, "", path);
     let output_guard = output.lock().unwrap();
     output_guard.clone().to_string()

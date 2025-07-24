@@ -11,26 +11,32 @@ readme = "README.md"
 keywords = ["command-line-utilities", "development-tools"]
 
 [dependencies]
-# Existing dependencies
-clap = { version = "4.5.7", features = ["derive"] }
-env_logger = "0.11.3"
-glob = "0.3.1"
-log = "0.4.21"
-rayon = "1.10.0"
-walkdir = "2.5.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.9"
-regex = "1.7.1"
+# Core CLI and utilities
+clap = { version = "4.5.21", features = ["derive"] }
+env_logger = "0.11.5"
+log = "0.4.22"
+anyhow = "1.0.93"
 
-# Add tree-sitter dependencies
-tree-sitter = "0.20.7"
-tree-sitter-python = { version = "0.20.0" }
-serde_json = "1.0.135"
+# File system and pattern matching
+glob = "0.3.1"
+walkdir = "2.5.0"
 ignore = "0.4.23"
-globset = "0.4"                             # Added globset
-rand = "0.9.1"
-anyhow = "1.0.98"
+globset = "0.4.15"
+
+# Serialization
+serde = { version = "1.0.215", features = ["derive"] }
+serde_yaml = "0.9.34"
+serde_json = "1.0.133"
+
+# Tree-sitter dependencies
+tree-sitter = "0.24.4"
+tree-sitter-python = "0.23.4"
+
+# Utilities
+rayon = "1.10.0"
+regex = "1.11.1"
+rand = "0.9.2"
 
 [dev-dependencies]
 insta = { version = "1.43.1", features = ["yaml"] }
-tempfile = "3"
+tempfile = "3.14.0"
