@@ -21,7 +21,7 @@ use super::parse_python::{extract_python_signatures, maybe_read_notebook};
 // process_directory_structure is still used.
 use super::utils::process_directory_structure;
 // use glob::Pattern; // Removed as main ignore logic uses `ignore` crate now. Still used by process_directory_structure internally.
-use crate::curly::traits::GenerateOperation; // Import the trait
+use crate::prmpt::traits::GenerateOperation; // Import the trait
 use anyhow::{Context, Error}; // For the Result type & context
 
 /// Struct for implementing the GenerateOperation trait.
@@ -43,7 +43,7 @@ impl GenerateOperation for Generator {
             )
         })?;
 
-        let output_file_name = config.output.as_deref().unwrap_or("curly.out");
+        let output_file_name = config.output.as_deref().unwrap_or("prmpt.out");
         let delimiter = config.delimiter.as_deref().unwrap_or("```");
 
         let mut ignore_patterns_for_structure: Vec<glob::Pattern> =
@@ -58,7 +58,7 @@ impl GenerateOperation for Generator {
         ignore_patterns_for_structure.push(glob::Pattern::new(output_file_name).unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new("*.out").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new(".git").unwrap());
-        ignore_patterns_for_structure.push(glob::Pattern::new("curly.yaml").unwrap());
+        ignore_patterns_for_structure.push(glob::Pattern::new("prmpt.yaml").unwrap());
         ignore_patterns_for_structure.push(glob::Pattern::new(".gitignore").unwrap()); // Added this line
 
         if let Some(language) = config.language.as_deref() {
@@ -150,7 +150,7 @@ impl GenerateOperation for Generator {
 /// Utility function to run the generation and write the output to a file.
 /// This function now uses the GenerateOperation trait.
 pub fn run_and_write(generator: &impl GenerateOperation, config: &Config) -> Result<(), Error> {
-    let output_file_name = config.output.as_deref().unwrap_or("curly.out").to_string();
+    let output_file_name = config.output.as_deref().unwrap_or("prmpt.out").to_string();
 
     match generator.run(config) {
         Ok((output_final, errors)) => {
@@ -252,7 +252,7 @@ fn process_directory_files(
     output_file_name: &str, // Added to ignore the output file specifically
 ) {
     let mut walker_builder = WalkBuilder::new(dir);
-    walker_builder.add_custom_ignore_filename(".curlyignore"); // Support .curlyignore
+    walker_builder.add_custom_ignore_filename(".prmptignore"); // Support .prmptignore
 
     // Create an OverrideBuilder and add all patterns to it.
     // Use OverrideBuilder for ignore crate patterns. Prefixing globs with '!' makes
@@ -276,8 +276,8 @@ fn process_directory_files(
     if let Err(e) = override_builder.add("!.gitignore") {
         warn!("Failed to add .gitignore ignore pattern: {}", e);
     }
-    if let Err(e) = override_builder.add("!curly.yaml") {
-        warn!("Failed to add curly.yaml ignore pattern: {}", e);
+    if let Err(e) = override_builder.add("!prmpt.yaml") {
+        warn!("Failed to add prmpt.yaml ignore pattern: {}", e);
     }
 
     // Add patterns from config.ignore
@@ -318,7 +318,7 @@ fn process_directory_files(
     // inside an actual git repository. `require_git(false)` ensures the
     // ignore crate will parse `.gitignore` files without needing a `.git`
     // directory present. This mimics the common expectation that providing a
-    // `.gitignore` should be enough for Curly to skip those paths.
+    // `.gitignore` should be enough for prmpt to skip those paths.
     walker_builder.require_git(false);
 
     // Control .gitignore usage based on config. When `use_gitignore` is false
@@ -554,10 +554,10 @@ pub fn directory_peak(dir_path: &str) -> String {
     // These are glob patterns, used by process_directory_structure
     let ignore_patterns_for_peak = vec![
         // Renamed to avoid confusion
-        glob::Pattern::new("curly.out").unwrap(),
+        glob::Pattern::new("prmpt.out").unwrap(),
         glob::Pattern::new("*.out").unwrap(),
         glob::Pattern::new(".git").unwrap(),
-        glob::Pattern::new("curly.yaml").unwrap(),
+        glob::Pattern::new("prmpt.yaml").unwrap(),
         glob::Pattern::new("node_modules").unwrap(),
         glob::Pattern::new("target").unwrap(),
         glob::Pattern::new("dist").unwrap(),

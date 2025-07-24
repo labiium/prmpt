@@ -1,12 +1,12 @@
 [package]
-name = "curly"
+name = "prmpt"
 version = "0.2.0"
 edition = "2021"
 authors = ["Emmanuel Olowe emmanuel@labiium.com"]
 license = "Apache-2.0"
-repository = "https://github.com/labiium/curly"
-homepage = "https://github.com/labiium/curly"
-documentation = "https://docs.rs/curly"
+repository = "https://github.com/labiium/prmpt"
+homepage = "https://github.com/labiium/prmpt"
+documentation = "https://docs.rs/prmpt"
 readme = "README.md"
 keywords = ["command-line-utilities", "development-tools"]
 

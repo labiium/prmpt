@@ -1,7 +1,7 @@
-//! Provides functionality for injecting code from a generated file (e.g., "curly.out")
+//! Provides functionality for injecting code from a generated file (e.g., "prmpt.out")
 //! back into the repository at specified file paths.
 
-use crate::curly::traits::InjectOperation; // Import the trait
+use crate::prmpt::traits::InjectOperation; // Import the trait
 use anyhow::{Context, Error, Result};
 use log::{error, info, warn};
 use rand::distr::Alphanumeric;
@@ -280,7 +280,7 @@ fn extract_path(input: &str) -> &str {
 }
 
 /// Attempt to extract a file path from a line that begins with the code block
-/// delimiter. This supports Curly's own output format where the file path
+/// delimiter. This supports prmpt's own output format where the file path
 /// directly follows the opening fence, e.g. "```src/lib.rs" or
 /// "```rust src/lib.rs".
 fn extract_path_from_fence<'a>(line: &'a str, delimiter: &str) -> Option<&'a str> {

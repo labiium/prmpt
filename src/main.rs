@@ -1,22 +1,21 @@
-use clap::{Parser, Subcommand, Args};
+use clap::{Args, Parser, Subcommand};
 use env_logger;
 use log::LevelFilter;
 
 // Import all necessary functions/types from our library
 // These are re-exported at the crate root by src/lib.rs
-use curly::{
-    Config,
+use prmpt::run_and_write; // Corrected path for the utility function
+use prmpt::{
     load_config,
-    DEFAULT_CONFIG_KEY, // Added import
+    Config,
     // inject, // Will use Injector::inject
     // run_and_write, // Will use the updated run_and_write that takes a Generator
-    Generator,  // Added
-    Injector,   // Added
-    InjectOperation,   // Added
+    Generator,          // Added
+    InjectOperation,    // Added
+    Injector,           // Added
+    DEFAULT_CONFIG_KEY, // Added import
 };
-use curly::run_and_write; // Corrected path for the utility function
 use std::path::Path; // For Injector path arguments
-
 
 /// A simple program to convert a code repository into an LLM prompt and inject code into a repository
 #[derive(Parser)]
@@ -44,7 +43,7 @@ enum Commands {
     /// Injects code into a repository from a file
     Inject(InjectArgs),
     // Potentially a 'Run' subcommand for explicit config execution later
-    // Run(RunArgs), 
+    // Run(RunArgs),
 }
 
 /// Arguments for the `generate` subcommand
@@ -81,7 +80,7 @@ struct GenerateArgs {
     /// Use .gitignore file for ignore patterns
     #[arg(long)]
     use_gitignore: bool,
-    
+
     /// Display outputs from Jupyter notebooks
     #[arg(long)]
     display_outputs: bool,
@@ -91,7 +90,7 @@ struct GenerateArgs {
 #[derive(Args)]
 struct InjectArgs {
     /// Path to the file containing code to inject
-    #[arg(short, long, default_value = "curly.in")]
+    #[arg(short, long, default_value = "prmpt.in")]
     input: String,
 
     /// Path to the repository to inject the code into
@@ -103,15 +102,18 @@ struct InjectArgs {
 // This might not be strictly necessary if config loading is handled when no subcommand is parsed.
 // const RESERVED_SUBCOMMANDS: &[&str] = &["generate", "inject"];
 
-
 fn main() {
     let cli = Cli::parse();
 
     // Set up logging based on verbosity flags
     if cli.verbose {
-        env_logger::builder().filter_level(LevelFilter::Debug).init();
+        env_logger::builder()
+            .filter_level(LevelFilter::Debug)
+            .init();
     } else if cli.quiet {
-        env_logger::builder().filter_level(LevelFilter::Error).init();
+        env_logger::builder()
+            .filter_level(LevelFilter::Error)
+            .init();
     } else {
         env_logger::builder().filter_level(LevelFilter::Warn).init();
     }
@@ -128,7 +130,7 @@ fn main() {
                 docs_ignore: Some(args.docs_ignore),
                 use_gitignore: Some(args.use_gitignore),
                 display_outputs: Some(args.display_outputs),
-                prompts: None, // Prompts are usually part of curly.yaml, not direct CLI flags here.
+                prompts: None, // Prompts are usually part of prmpt.yaml, not direct CLI flags here.
             };
             let generator = Generator::default();
             if let Err(e) = run_and_write(&generator, &config) {
@@ -152,28 +154,32 @@ fn main() {
                         let generator = Generator::default();
                         // Use the updated run_and_write with the loaded config
                         if let Err(e) = run_and_write(&generator, &config.clone()) {
-                             eprintln!("Error generating prompt from config '{}': {:?}", config_to_load, e);
-                             std::process::exit(1);
+                            eprintln!(
+                                "Error generating prompt from config '{}': {:?}",
+                                config_to_load, e
+                            );
+                            std::process::exit(1);
                         }
                     } else {
-                        eprintln!("Configuration '{}' not found in curly.yaml.", config_to_load);
-                        // Show help if default 'base' config not found and no args given
+                        // This should rarely happen now since load_config ensures 'base' exists
+                        let available_configs: Vec<String> =
+                            configs.keys().map(|k| k.clone()).collect();
+                        eprintln!(
+                            "Configuration '{}' not found. Available configurations: {}",
+                            config_to_load,
+                            available_configs.join(", ")
+                        );
                         if cli.config_name.is_none() {
-                             // This is tricky, clap might have already shown help if no args were truly given.
-                             // If `curly` is run with no args, `cli.config_name` is None.
-                             // If `curly some_config` is run, `cli.config_name` is Some("some_config").
-                             // If `clap` fails to parse `some_config` as a subcommand, it might treat it as `cli.config_name`.
-                             // For now, this error message is sufficient.
-                             // A more robust solution would be to use `#[command(flatten)] args: ConfigArgs`
-                             // and `#[command(flatten)] command: Option<Commands>`
-                             // then check if command is None and ConfigArgs are default to imply "load base config".
-                             // Or require `curly run base` explicitly.
+                            eprintln!("Try running 'prmpt generate --help' for more options.");
                         }
                         std::process::exit(1);
                     }
                 }
                 Err(e) => {
-                    eprintln!("Failed to load curly.yaml: {}", e);
+                    eprintln!("Failed to load configuration: {}", e);
+                    eprintln!(
+                        "Note: prmpt can run without a prmpt.yaml file using default settings."
+                    );
                     std::process::exit(1);
                 }
             }

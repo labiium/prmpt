@@ -1,3 +1,0 @@
-language: rust
-use_gitignore: false
-output: "test_output_git_false.txt"

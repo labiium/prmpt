@@ -181,30 +181,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
 
 [[package]]
-name = "curly"
-version = "0.2.0"
-dependencies = [
- "anyhow",
- "clap",
- "env_logger",
- "glob",
- "globset",
- "ignore",
- "insta",
- "log",
- "rand",
- "rayon",
- "regex",
- "serde",
- "serde_json",
- "serde_yaml",
- "tempfile",
- "tree-sitter",
- "tree-sitter-python",
- "walkdir",
-]
-
-[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -436,6 +412,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
+]
+
+[[package]]
+name = "prmpt"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "env_logger",
+ "glob",
+ "globset",
+ "ignore",
+ "insta",
+ "log",
+ "rand",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+ "tree-sitter",
+ "tree-sitter-python",
+ "walkdir",
 ]
 
 [[package]]

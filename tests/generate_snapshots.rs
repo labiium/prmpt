@@ -1,5 +1,5 @@
-use curly::{Config, Generator, GenerateOperation, run_and_write};
 use insta::assert_yaml_snapshot;
+use prmpt::{run_and_write, Config, GenerateOperation, Generator};
 use std::path::PathBuf;
 
 // Helper function to construct path to test_repos
@@ -22,7 +22,7 @@ fn test_sample_project_1_default_snapshot() {
         language: Some("python".to_string()), // Explicitly set for clarity
         docs_comments_only: Some(false),      // Default behavior
         docs_ignore: Some(vec![]),
-        use_gitignore: Some(true),           // Test .gitignore processing
+        use_gitignore: Some(true), // Test .gitignore processing
         display_outputs: Some(false),
         prompts: None,
     };
@@ -32,12 +32,16 @@ fn test_sample_project_1_default_snapshot() {
 
     assert!(result.is_ok(), "Generator run failed: {:?}", result.err());
     let (output_string, errors) = result.unwrap();
-    
+
     // Assert that there are no non-critical errors reported from the run
     // (e.g., files that couldn't be processed but didn't stop the whole operation)
     // Depending on strictness, this might be active or commented out.
     // For now, let's ensure it's empty for this controlled test case.
-    assert!(errors.is_empty(), "Generator run reported errors: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Generator run reported errors: {:?}",
+        errors
+    );
 
     // Snapshot the main output string
     // The snapshot name will be derived from the test function name:
@@ -65,9 +69,17 @@ fn test_sample_project_1_docs_only_snapshot() {
     let generator = Generator::default();
     let result = generator.run(&config);
 
-    assert!(result.is_ok(), "Generator run failed for docs_only: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Generator run failed for docs_only: {:?}",
+        result.err()
+    );
     let (output_string, errors) = result.unwrap();
-    assert!(errors.is_empty(), "Generator run for docs_only reported errors: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Generator run for docs_only reported errors: {:?}",
+        errors
+    );
 
     // Snapshot for the docs_comments_only output
     // Snapshot name: `generate_snapshots__test_sample_project_1_docs_only_snapshot.snap`
@@ -85,8 +97,10 @@ fn test_config_and_ignore_snapshot() {
     std::env::set_current_dir(&project_path_str).unwrap();
 
     // Load config from curly.yaml in the test project directory
-    let configs = curly::load_config().expect("Failed to load curly.yaml for config_and_ignore_test");
-    let config = configs.get(curly::DEFAULT_CONFIG_KEY) // Using DEFAULT_CONFIG_KEY as per new format
+    let configs =
+        prmpt::load_config().expect("Failed to load prmpt.yaml for config_and_ignore_test");
+    let config = configs
+        .get(prmpt::DEFAULT_CONFIG_KEY) // Using DEFAULT_CONFIG_KEY as per new format
         .expect("Config not found under default key for config_and_ignore_test")
         .clone(); // Clone to own it
 
@@ -103,7 +117,6 @@ fn test_config_and_ignore_snapshot() {
     // Let's clear it to ensure we are testing the string output, not file writing.
     effective_config.output = None;
 
-
     let generator = Generator::default();
     // Pass a reference to the config
     let result = generator.run(&effective_config);
@@ -111,7 +124,11 @@ fn test_config_and_ignore_snapshot() {
     assert!(result.is_ok(), "Generator run failed: {:?}", result.err());
     let (output_string, errors) = result.unwrap();
 
-    assert!(errors.is_empty(), "Generator run reported errors: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Generator run reported errors: {:?}",
+        errors
+    );
 
     // Snapshot name will be `generate_snapshots__test_config_and_ignore_snapshot.snap`
     assert_yaml_snapshot!(output_string);
@@ -128,8 +145,10 @@ fn test_config_and_ignore_false_snapshot() {
     std::env::set_current_dir(&project_path_str).unwrap();
 
     // Load config from curly.yaml in the test project directory
-    let configs = curly::load_config().expect("Failed to load curly.yaml for config_and_ignore_false_test");
-    let config = configs.get(curly::DEFAULT_CONFIG_KEY)
+    let configs =
+        prmpt::load_config().expect("Failed to load prmpt.yaml for config_and_ignore_false_test");
+    let config = configs
+        .get(prmpt::DEFAULT_CONFIG_KEY)
         .expect("Config not found under default key for config_and_ignore_false_test")
         .clone();
 
@@ -146,7 +165,11 @@ fn test_config_and_ignore_false_snapshot() {
     assert!(result.is_ok(), "Generator run failed: {:?}", result.err());
     let (output_string, errors) = result.unwrap();
 
-    assert!(errors.is_empty(), "Generator run reported errors: {:?}", errors);
+    assert!(
+        errors.is_empty(),
+        "Generator run reported errors: {:?}",
+        errors
+    );
 
     // Snapshot name will be `generate_snapshots__test_config_and_ignore_false_snapshot.snap`
     assert_yaml_snapshot!(output_string);
@@ -176,7 +199,7 @@ fn output_file_ignorance_snapshot() {
             // The `get_test_repo_path` gives an absolute path. We need to strip this.
             let repo_root_string = test_dir.to_string_lossy().to_string();
             let normalized_output = output.replace(&repo_root_string, "TEST_REPO_ROOT");
-            
+
             // Further normalization: replace backslashes on Windows if any occur in paths
             let normalized_output = normalized_output.replace("\\", "/");
 
@@ -184,7 +207,10 @@ fn output_file_ignorance_snapshot() {
             insta::assert_snapshot!("output_file_ignorance_snapshot", normalized_output);
         }
         Err(e) => {
-            panic!("Failed to run generator for output_file_ignorance_test: {:?}", e);
+            panic!(
+                "Failed to run generator for output_file_ignorance_test: {:?}",
+                e
+            );
         }
     }
 }
@@ -241,10 +267,16 @@ fn language_specific_ignore_javascript_snapshot() {
             let repo_root_string = test_dir.to_string_lossy().to_string();
             let normalized_output = output.replace(&repo_root_string, "TEST_REPO_ROOT");
             let normalized_output = normalized_output.replace("\\", "/");
-            insta::assert_snapshot!("language_specific_ignore_javascript_snapshot", normalized_output);
+            insta::assert_snapshot!(
+                "language_specific_ignore_javascript_snapshot",
+                normalized_output
+            );
         }
         Err(e) => {
-            panic!("Failed to run generator for javascript_ignore_test: {:?}", e);
+            panic!(
+                "Failed to run generator for javascript_ignore_test: {:?}",
+                e
+            );
         }
     }
 }
@@ -271,10 +303,16 @@ fn language_specific_ignore_typescript_snapshot() {
             let repo_root_string = test_dir.to_string_lossy().to_string();
             let normalized_output = output.replace(&repo_root_string, "TEST_REPO_ROOT");
             let normalized_output = normalized_output.replace("\\", "/");
-            insta::assert_snapshot!("language_specific_ignore_typescript_snapshot", normalized_output);
+            insta::assert_snapshot!(
+                "language_specific_ignore_typescript_snapshot",
+                normalized_output
+            );
         }
         Err(e) => {
-            panic!("Failed to run generator for typescript_ignore_test: {:?}", e);
+            panic!(
+                "Failed to run generator for typescript_ignore_test: {:?}",
+                e
+            );
         }
     }
 }
@@ -381,7 +419,7 @@ fn load_sub_configs() {
     let original_dir = std::env::current_dir().unwrap();
     std::env::set_current_dir(&repo_path).unwrap();
 
-    let configs = curly::load_config().expect("failed to load multi config");
+    let configs = prmpt::load_config().expect("Failed to load config");
     assert!(configs.contains_key("one"), "missing config 'one'");
     assert!(configs.contains_key("two"), "missing config 'two'");
 
@@ -394,7 +432,7 @@ fn sub_config_use_gitignore_snapshot() {
     let original_dir = std::env::current_dir().unwrap();
     std::env::set_current_dir(&repo_path).unwrap();
 
-    let configs = curly::load_config().expect("failed to load curly.yaml");
+    let configs = prmpt::load_config().expect("Failed to load config");
     let mut config = configs.get("two").expect("config two missing").clone();
 
     std::env::set_current_dir(&original_dir).unwrap();
@@ -419,7 +457,7 @@ fn sub_config_no_gitignore_includes_gitignored_file() {
     let original_dir = std::env::current_dir().unwrap();
     std::env::set_current_dir(&repo_path).unwrap();
 
-    let configs = curly::load_config().expect("failed to load curly.yaml");
+    let configs = prmpt::load_config().expect("Failed to load config");
     let mut config = configs.get("one").expect("config one missing").clone();
 
     std::env::set_current_dir(&original_dir).unwrap();
@@ -482,7 +520,10 @@ fn gitignore_disabled_ignores_nothing() {
     let generator = Generator;
     match generator.run(&config) {
         Ok((output, _)) => {
-            assert!(output.contains("ignored.rs"), "ignored file should appear when gitignore disabled");
+            assert!(
+                output.contains("ignored.rs"),
+                "ignored file should appear when gitignore disabled"
+            );
         }
         Err(e) => panic!("Failed to run generator: {:?}", e),
     }
