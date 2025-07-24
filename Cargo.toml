@@ -1,7 +1,8 @@
 [package]
 name = "prmpt"
-version = "0.2.0"
+version = "0.1.0"
 edition = "2021"
+description = "A command-line tool to convert code repositories into LLM prompts and inject code back into repositories"
 authors = ["Emmanuel Olowe emmanuel@labiium.com"]
 license = "Apache-2.0"
 repository = "https://github.com/labiium/prmpt"
