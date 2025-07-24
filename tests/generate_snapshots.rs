@@ -203,9 +203,7 @@ fn output_file_ignorance_snapshot() {
             insta::assert_snapshot!("output_file_ignorance_snapshot", normalized_output);
         }
         Err(e) => {
-            panic!(
-                "Failed to run generator for output_file_ignorance_test: {e:?}"
-            );
+            panic!("Failed to run generator for output_file_ignorance_test: {e:?}");
         }
     }
 }
@@ -268,9 +266,7 @@ fn language_specific_ignore_javascript_snapshot() {
             );
         }
         Err(e) => {
-            panic!(
-                "Failed to run generator for javascript_ignore_test: {e:?}"
-            );
+            panic!("Failed to run generator for javascript_ignore_test: {e:?}");
         }
     }
 }
@@ -303,9 +299,7 @@ fn language_specific_ignore_typescript_snapshot() {
             );
         }
         Err(e) => {
-            panic!(
-                "Failed to run generator for typescript_ignore_test: {e:?}"
-            );
+            panic!("Failed to run generator for typescript_ignore_test: {e:?}");
         }
     }
 }
